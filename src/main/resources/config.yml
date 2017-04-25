@@ -1,0 +1,5 @@
+fertilizer:
+  description:
+    DisplayName: Fertilizer
+    Description: Grow big  with this highly efficient fertilizer.
+    Usage: Use on a sapling or mushroom to grow it.

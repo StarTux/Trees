@@ -1,0 +1,11 @@
+name: Trees
+description: Custom Trees and Fertilizer
+author: StarTux
+version: 0.1
+main: com.winthier.trees.TreesPlugin
+depend: [ Custom, GenericEvents ]
+commands:
+  trees:
+    description: Admin interface
+    permission: trees.trees
+permissions: {}
