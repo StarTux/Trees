@@ -157,6 +157,7 @@ public final class Tree {
         case SAPLING:
         case BROWN_MUSHROOM:
         case RED_MUSHROOM:
+        case DOUBLE_PLANT:
             return true;
         default:
             return false;
