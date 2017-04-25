@@ -1,5 +1,6 @@
 fertilizer:
   description:
     DisplayName: Fertilizer
+    Category: Gardening
     Description: Grow big  with this highly efficient fertilizer.
     Usage: Use on a sapling or mushroom to grow it.

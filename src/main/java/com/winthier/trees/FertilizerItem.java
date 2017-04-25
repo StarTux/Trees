@@ -5,6 +5,7 @@ import com.winthier.custom.item.ItemContext;
 import com.winthier.custom.item.ItemDescription;
 import com.winthier.custom.item.UncraftableItem;
 import com.winthier.generic_events.GenericEventsPlugin;
+import com.winthier.generic_events.ItemNameEvent;
 import lombok.Getter;
 import org.bukkit.GameMode;
 import org.bukkit.Material;
@@ -64,5 +65,10 @@ public final class FertilizerItem implements CustomItem, UncraftableItem {
             ItemStack item = context.getItemStack();
             item.setAmount(item.getAmount() - 1);
         }
+    }
+
+    @EventHandler
+    public void onItemName(ItemNameEvent event, ItemContext context) {
+        event.setItemName(itemDescription.getDisplayName());
     }
 }
