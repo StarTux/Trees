@@ -13,7 +13,8 @@ public enum TreeType {
     DARK_OAK,
     ACACIA,
     BROWN_MUSHROOM,
-    RED_MUSHROOM;
+    RED_MUSHROOM,
+    DEAD_BUSH;
 
     static TreeType of(TreeSpecies species) {
         if (species == null) throw new NullPointerException();
@@ -40,6 +41,8 @@ public enum TreeType {
         case RED_MUSHROOM:
         case HUGE_MUSHROOM_2:
             return RED_MUSHROOM;
+        case DEAD_BUSH:
+            if (block.getData() == 0) return DEAD_BUSH;
         default:
             return null;
         }
