@@ -11,7 +11,9 @@ import java.util.Set;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.Value;
+import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.Particle;
 import org.bukkit.Sound;
 import org.bukkit.SoundCategory;
 import org.bukkit.block.Block;
@@ -108,18 +110,21 @@ public final class Tree {
                     Voxel voxel = voxels.get(i);
                     i += 1;
                     Block block = rootBlock.getRelative(voxel.x, voxel.y, voxel.z);
-                    if (voxel.x != 0 && voxel.y != 0 && voxel.z != 0) {
-                        if (!canPlaceBlock(block)) return;
-                    }
+                    Location loc = block.getLocation().add(0.5, 0.5, 0.5);
+                    if (!canPlaceBlock(block)) return;
                     if (!GenericEventsPlugin.getInstance().playerCanBuild(player, block)) return;
+                    if (voxel.x != 0 && voxel.y != 0 && voxel.z != 0 && block.getType() != Material.AIR) {
+                        block.getWorld().spawnParticle(Particle.BLOCK_CRACK, loc, 16, block.getState().getData());
+                        block.breakNaturally();
+                    }
                     Material mat = Material.getMaterial(voxel.type);
                     switch (mat) {
                     case LEAVES:
                     case LEAVES_2:
-                        block.getWorld().playSound(block.getLocation(), Sound.BLOCK_GRASS_PLACE, SoundCategory.BLOCKS, 1f, 1f);
+                        block.getWorld().playSound(loc, Sound.BLOCK_GRASS_PLACE, SoundCategory.BLOCKS, 1f, 1f);
                         break;
                     default:
-                        block.getWorld().playSound(block.getLocation(), Sound.BLOCK_WOOD_PLACE, SoundCategory.BLOCKS, 1f, 1f);
+                        block.getWorld().playSound(loc, Sound.BLOCK_WOOD_PLACE, SoundCategory.BLOCKS, 1f, 1f);
                         break;
                     }
                     voxel.setBlock(block);
@@ -161,6 +166,9 @@ public final class Tree {
         case BROWN_MUSHROOM:
         case RED_MUSHROOM:
         case DOUBLE_PLANT:
+        case RED_ROSE:
+        case YELLOW_FLOWER:
+        case DEAD_BUSH:
             return true;
         default:
             return false;
