@@ -99,28 +99,31 @@ public final class Tree {
         new BukkitRunnable() {
             private int i = 0;
             @Override public void run() {
-                if (i >= voxels.size()) {
-                    cancel();
-                    return;
+                int count = 1 + plugin.getRandom().nextInt(3);
+                for (int j = 0; j < count; j += 1) {
+                    if (i >= voxels.size()) {
+                        cancel();
+                        return;
+                    }
+                    Voxel voxel = voxels.get(i);
+                    i += 1;
+                    Block block = rootBlock.getRelative(voxel.x, voxel.y, voxel.z);
+                    if (voxel.x != 0 && voxel.y != 0 && voxel.z != 0) {
+                        if (!canPlaceBlock(block)) return;
+                    }
+                    if (!GenericEventsPlugin.getInstance().playerCanBuild(player, block)) return;
+                    Material mat = Material.getMaterial(voxel.type);
+                    switch (mat) {
+                    case LEAVES:
+                    case LEAVES_2:
+                        block.getWorld().playSound(block.getLocation(), Sound.BLOCK_GRASS_PLACE, SoundCategory.BLOCKS, 1f, 1f);
+                        break;
+                    default:
+                        block.getWorld().playSound(block.getLocation(), Sound.BLOCK_WOOD_PLACE, SoundCategory.BLOCKS, 1f, 1f);
+                        break;
+                    }
+                    voxel.setBlock(block);
                 }
-                Voxel voxel = voxels.get(i);
-                i += 1;
-                Block block = rootBlock.getRelative(voxel.x, voxel.y, voxel.z);
-                if (voxel.x != 0 && voxel.y != 0 && voxel.z != 0) {
-                    if (!canPlaceBlock(block)) return;
-                }
-                if (!GenericEventsPlugin.getInstance().playerCanBuild(player, block)) return;
-                Material mat = Material.getMaterial(voxel.type);
-                switch (mat) {
-                case LEAVES:
-                case LEAVES_2:
-                    block.getWorld().playSound(block.getLocation(), Sound.BLOCK_GRASS_PLACE, SoundCategory.BLOCKS, 1f, 1f);
-                    break;
-                default:
-                    block.getWorld().playSound(block.getLocation(), Sound.BLOCK_WOOD_PLACE, SoundCategory.BLOCKS, 1f, 1f);
-                    break;
-                }
-                voxel.setBlock(block);
             }
         }.runTaskTimer(plugin, 0, 1);
     }

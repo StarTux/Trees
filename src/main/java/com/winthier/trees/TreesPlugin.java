@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Random;
+import lombok.Getter;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.command.Command;
@@ -19,6 +20,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.BlockIterator;
 
+@Getter
 public final class TreesPlugin extends JavaPlugin implements Listener {
     private Tree cachedTree;
     private Block cachedRootBlock;
