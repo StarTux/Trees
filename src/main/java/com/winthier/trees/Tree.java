@@ -132,16 +132,18 @@ public final class Tree {
                         block.breakNaturally();
                     }
                     Material mat = Material.getMaterial(voxel.type);
+                    int data = voxel.data;
                     switch (mat) {
                     case LEAVES:
                     case LEAVES_2:
                         block.getWorld().playSound(loc, Sound.BLOCK_GRASS_PLACE, SoundCategory.BLOCKS, 1f, 1f);
+                        data &= 3;
                         break;
                     default:
                         block.getWorld().playSound(loc, Sound.BLOCK_WOOD_PLACE, SoundCategory.BLOCKS, 1f, 1f);
                         break;
                     }
-                    voxel.setBlock(block);
+                    block.setTypeIdAndData(voxel.type, (byte)data, true);
                 }
             }
         }.runTaskTimer(plugin, 0, 1);
