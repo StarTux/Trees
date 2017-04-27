@@ -101,6 +101,22 @@ public final class TreesPlugin extends JavaPlugin implements Listener {
                 ioe.printStackTrace();
                 player.sendMessage("Cannot save. See console.");
             }
+        } else if (cmd.equals("load") && args.length == 2) {
+            if (player == null) return false;
+            String name = args[1];
+            Tree found = null;
+            for (Tree tree: getTrees()) {
+                if (name.equalsIgnoreCase(tree.getName())) {
+                    found = tree;
+                    break;
+                }
+            }
+            if (found != null) {
+                session(player).cachedTree = found;
+                player.sendMessage("Tree loaded: " + found.getName());
+            } else {
+                player.sendMessage("Tree not found: " + name);
+            }
         } else if (cmd.equals("grow")) {
             if (player == null) return false;
             Tree tree = session(player).cachedTree;
@@ -142,6 +158,32 @@ public final class TreesPlugin extends JavaPlugin implements Listener {
             return false;
         }
         return true;
+    }
+
+    @Override
+    public List<String> onTabComplete(CommandSender sender, Command command, String label, String[] args) {
+        if (args.length == 0) return null;
+        String cmd = args[0].toLowerCase();
+        if (args.length == 2 && "load".equals(cmd)) {
+            List<String> result = new ArrayList<>();
+            for (Tree tree: getTrees()) {
+                if (tree.getName() != null && tree.getName().startsWith(args[1])) {
+                    result.add(tree.getName());
+                }
+            }
+            return result;
+        } else if (args.length == 2 && "save".equals(cmd)) {
+            List<String> result = new ArrayList<>();
+            String pat = args[1].toUpperCase();
+            for (TreeType type: TreeType.values()) {
+                if (type.name().startsWith(pat)) {
+                    result.add(type.name());
+                }
+            }
+            return result;
+        } else {
+            return null;
+        }
     }
 
     private static Block getTargetBlock(Player player) {

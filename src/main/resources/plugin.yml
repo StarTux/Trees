@@ -8,4 +8,12 @@ commands:
   trees:
     description: Admin interface
     permission: trees.trees
+    usage: |-
+      Usage:
+      /trees select - Select tree in world
+      /trees highlight - Highlight selected tree
+      /trees save <type> <name> - Save selected tree
+      /trees load <name> - Load tree
+      /trees show - Show selected tree
+      Load name and save type are tab completed.
 permissions: {}
