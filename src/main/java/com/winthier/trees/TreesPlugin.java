@@ -153,7 +153,7 @@ public final class TreesPlugin extends JavaPlugin implements Listener {
             }
             session(player).name = name;
             session(player).uuid = uuid;
-            player.sendMessage("Mased as " + name + ": " + uuid);
+            player.sendMessage("Masked as " + name + ": " + uuid);
         } else {
             return false;
         }
@@ -166,8 +166,9 @@ public final class TreesPlugin extends JavaPlugin implements Listener {
         String cmd = args[0].toLowerCase();
         if (args.length == 2 && "load".equals(cmd)) {
             List<String> result = new ArrayList<>();
+            String pat = args[1].toLowerCase();
             for (Tree tree: getTrees()) {
-                if (tree.getName() != null && tree.getName().startsWith(args[1])) {
+                if (tree.getName() != null && tree.getName().toLowerCase().startsWith(pat)) {
                     result.add(tree.getName());
                 }
             }
