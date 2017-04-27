@@ -84,8 +84,8 @@ public final class TreesPlugin extends JavaPlugin implements Listener {
             TreeType treeType = TreeType.valueOf(args[1].toUpperCase());
             Tree tree = session(player).cachedTree;
             if (tree == null) return false;
-            String name = args[2];
-            String filename = session(player).name + "." + name + ".yml";
+            String name = session(player).name + "." + args[2];
+            String filename = name + ".yml";
             tree.setType(treeType);
             tree.setName(name);
             tree.setAuthor(session(player).uuid);
@@ -95,7 +95,7 @@ public final class TreesPlugin extends JavaPlugin implements Listener {
             File file = new File(getTreesFolder(), filename);
             try {
                 config.save(file);
-                player.sendMessage("Tree saved at " + file);
+                player.sendMessage("Tree saved as " + name);
                 trees = null;
             } catch (IOException ioe) {
                 ioe.printStackTrace();
