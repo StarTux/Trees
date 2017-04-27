@@ -113,11 +113,11 @@ public final class TreesPlugin extends JavaPlugin implements Listener {
             if (tree == null) return false;
             Block block = getTargetBlock(player);
             if (block == null) return false;
-            block = block.getRelative(0, 1, 0);
-            tree.show(player, block);
+            Block rootBlock = block.getRelative(0, 1, 0);
+            tree.show(player, rootBlock);
             new BukkitRunnable() {
                 @Override public void run() {
-                    tree.hide(player, block);
+                    tree.hide(player, rootBlock);
                 }
             }.runTaskLater(this, 60);
             player.sendMessage("Tree shown.");
@@ -145,9 +145,10 @@ public final class TreesPlugin extends JavaPlugin implements Listener {
     }
 
     private static Block getTargetBlock(Player player) {
-        BlockIterator iter = new BlockIterator(player, 16);
+        final int limit = 32;
+        BlockIterator iter = new BlockIterator(player, limit);
         int count = 0;
-        while (iter.hasNext() && count < 16) {
+        while (iter.hasNext() && count < limit) {
             count += 1;
             Block block = iter.next();
             if (block.getType() != Material.AIR) {
