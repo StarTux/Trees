@@ -3,7 +3,7 @@ package com.winthier.trees;
 import org.bukkit.TreeSpecies;
 import org.bukkit.block.Block;
 import org.bukkit.material.MaterialData;
-import org.bukkit.material.Wood;
+import org.bukkit.material.Sapling;
 
 public enum TreeType {
     OAK,
@@ -31,16 +31,17 @@ public enum TreeType {
     }
 
     static TreeType of(Block block) {
-        MaterialData materialData = block.getState().getData();
-        if (materialData instanceof Wood) {
-            return of(((Wood)materialData).getSpecies());
-        }
         switch (block.getType()) {
+        case SAPLING:
+            MaterialData materialData = block.getState().getData();
+            if (materialData instanceof Sapling) {
+                return of(((Sapling)materialData).getSpecies());
+            } else {
+                return null;
+            }
         case BROWN_MUSHROOM:
-        case HUGE_MUSHROOM_1:
             return BROWN_MUSHROOM;
         case RED_MUSHROOM:
-        case HUGE_MUSHROOM_2:
             return RED_MUSHROOM;
         case DEAD_BUSH:
             switch (block.getData()) {
