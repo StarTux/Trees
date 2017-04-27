@@ -8,6 +8,7 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.Value;
@@ -32,6 +33,8 @@ public final class Tree {
     }
 
     @Setter private TreeType type;
+    @Setter private String name;
+    @Setter private UUID author;
     private final List<Voxel> voxels = new ArrayList<>();
 
     void serialize(ConfigurationSection section) {
@@ -44,6 +47,8 @@ public final class Tree {
             list.add(voxel.data);
         }
         if (type != null) section.set("Type", type.name());
+        if (name != null) section.set("Name", name);
+        if (author != null) section.set("Author", author.toString());
         section.set("Voxels", list);
     }
 
@@ -56,6 +61,15 @@ public final class Tree {
                 iae.printStackTrace();
             }
         }
+        String authorString = section.getString("Author");
+        if (authorString != null) {
+            try {
+                author = UUID.fromString(authorString);
+            } catch (IllegalArgumentException iae) {
+                iae.printStackTrace();
+            }
+        }
+        name = section.getString("Name");
         for (Iterator<Integer> iter = section.getIntegerList("Voxels").iterator(); iter.hasNext();) {
             voxels.add(new Voxel(iter.next(), iter.next(), iter.next(), iter.next(), iter.next()));
         }
@@ -147,7 +161,14 @@ public final class Tree {
     void show(Player player, Block rootBlock) {
         for (Voxel voxel: voxels) {
             player.sendBlockChange(rootBlock.getRelative(voxel.x, voxel.y, voxel.z).getLocation(),
-                                       voxel.type, (byte)voxel.data);
+                                   voxel.type, (byte)voxel.data);
+        }
+    }
+
+    void hide(Player player, Block rootBlock) {
+        for (Voxel voxel: voxels) {
+            Block block = rootBlock.getRelative(voxel.x, voxel.y, voxel.z);
+            player.sendBlockChange(block.getLocation(), block.getType(), (byte)block.getData());
         }
     }
 

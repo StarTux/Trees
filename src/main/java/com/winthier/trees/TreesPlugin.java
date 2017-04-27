@@ -5,8 +5,10 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.EnumSet;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Random;
+import java.util.UUID;
 import lombok.Getter;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
@@ -22,10 +24,9 @@ import org.bukkit.util.BlockIterator;
 
 @Getter
 public final class TreesPlugin extends JavaPlugin implements Listener {
-    private Tree cachedTree;
-    private Block cachedRootBlock;
     private List<Tree> trees;
     private final Random random = new Random(System.currentTimeMillis());
+    private final HashMap<UUID, Session> sessions = new HashMap<>();
 
     @Override
     public void onEnable() {
@@ -56,8 +57,8 @@ public final class TreesPlugin extends JavaPlugin implements Listener {
             StringBuilder sb = new StringBuilder("Total " + tree.getVoxels().size() + ":");
             for (Material mat: mats) sb.append(" ").append(mat.name().toLowerCase());
             player.sendMessage(sb.toString());
-            this.cachedTree = tree;
-            this.cachedRootBlock = rootBlock;
+            session(player).cachedTree = tree;
+            session(player).cachedRootBlock = rootBlock;
             tree.highlight(player, rootBlock);
             new BukkitRunnable() {
                 @Override public void run() {
@@ -65,11 +66,11 @@ public final class TreesPlugin extends JavaPlugin implements Listener {
                     tree.show(player, rootBlock);
                 }
             }.runTaskLater(this, 40);
-        } else if (cmd.equals("show")) {
+        } else if (cmd.equals("highlight") || cmd.equals("hl")) {
             if (player == null) return false;
-            Tree tree = this.cachedTree;
+            Tree tree = session(player).cachedTree;
             if (tree == null) return false;
-            Block block = this.cachedRootBlock;
+            Block block = session(player).cachedRootBlock;
             tree.highlight(player, block);
             new BukkitRunnable() {
                 @Override public void run() {
@@ -77,13 +78,17 @@ public final class TreesPlugin extends JavaPlugin implements Listener {
                     tree.show(player, block);
                 }
             }.runTaskLater(this, 40);
-            player.sendMessage("Showing tree");
+            player.sendMessage("Highlighting tree");
         } else if (cmd.equals("save") && args.length == 3) {
             if (player == null) return false;
-            Tree tree = this.cachedTree;
+            TreeType treeType = TreeType.valueOf(args[1].toUpperCase());
+            Tree tree = session(player).cachedTree;
             if (tree == null) return false;
-            String filename = args[2] + ".yml";
-            tree.setType(TreeType.valueOf(args[1].toUpperCase()));
+            String name = args[2];
+            String filename = session(player).name + "." + name + ".yml";
+            tree.setType(treeType);
+            tree.setName(name);
+            tree.setAuthor(session(player).uuid);
             YamlConfiguration config = new YamlConfiguration();
             tree.serialize(config);
             getTreesFolder().mkdirs();
@@ -98,10 +103,41 @@ public final class TreesPlugin extends JavaPlugin implements Listener {
             }
         } else if (cmd.equals("grow")) {
             if (player == null) return false;
-            Tree tree = this.cachedTree;
+            Tree tree = session(player).cachedTree;
             if (tree == null) return false;
-            tree.grow(player.getLocation().getBlock());
+            tree.grow(getTargetBlock(player).getRelative(0, 1, 0));
             player.sendMessage("Tree grown.");
+        } else if (cmd.equals("show")) {
+            if (player == null) return false;
+            Tree tree = session(player).cachedTree;
+            if (tree == null) return false;
+            Block block = getTargetBlock(player);
+            if (block == null) return false;
+            block = block.getRelative(0, 1, 0);
+            tree.show(player, block);
+            new BukkitRunnable() {
+                @Override public void run() {
+                    tree.hide(player, block);
+                }
+            }.runTaskLater(this, 60);
+            player.sendMessage("Tree shown.");
+        } else if (cmd.equals("clear")) {
+            if (player == null) return false;
+            sessions.remove(player.getUniqueId());
+            player.sendMessage("Session cleared");
+        } else if (cmd.equals("mask") && (args.length == 3 || args.length == 2)) {
+            String name = args[1];
+            UUID uuid;
+            if (args.length == 3) {
+                uuid = UUID.fromString(args[2]);
+            } else if (getServer().getPlayerExact(name) != null) {
+                uuid = getServer().getPlayerExact(name).getUniqueId();
+            } else {
+                uuid = getServer().getOfflinePlayer(name).getUniqueId();
+            }
+            session(player).name = name;
+            session(player).uuid = uuid;
+            player.sendMessage("Mased as " + name + ": " + uuid);
         } else {
             return false;
         }
@@ -148,5 +184,23 @@ public final class TreesPlugin extends JavaPlugin implements Listener {
         }
         if (myTrees.isEmpty()) return null;
         return myTrees.get(random.nextInt(myTrees.size()));
+    }
+
+    Session session(Player player) {
+        Session result = sessions.get(player.getUniqueId());
+        if (result == null) {
+            result = new Session();
+            result.name = player.getName();
+            result.uuid = player.getUniqueId();
+            sessions.put(player.getUniqueId(), result);
+        }
+        return result;
+    }
+
+    class Session {
+        private UUID uuid;
+        private String name;
+        private Tree cachedTree;
+        private Block cachedRootBlock;
     }
 }
