@@ -73,6 +73,7 @@ public final class FertilizerItem implements CustomItem, UncraftableItem {
             block.getWorld().playSound(block.getLocation(loc), Sound.ENTITY_SLIME_DEATH, SoundCategory.BLOCKS, 2.0f, 0.5f);
             return;
         }
+        plugin.getLogger().info(String.format("Growing %s for %s", tree.getName(), player.getName()));
         tree.growSlowly(plugin, player, block);
         block.getWorld().spawnParticle(Particle.VILLAGER_HAPPY, block.getLocation(loc).add(0.5, 0.5, 0.5), 8, 0.25, 0.25, 0.25, 0);
         block.getWorld().playSound(block.getLocation(loc), Sound.ENTITY_SLIME_JUMP, SoundCategory.BLOCKS, 2.0f, 1.5f);
