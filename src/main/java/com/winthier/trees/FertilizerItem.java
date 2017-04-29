@@ -59,24 +59,27 @@ public final class FertilizerItem implements CustomItem, UncraftableItem {
         TreeType treeType = TreeType.of(block);
         Location loc = block.getLocation();
         if (treeType == null) {
-            block.getWorld().spawnParticle(Particle.TOTEM, block.getRelative(event.getBlockFace()).getLocation(loc).add(0.5, 0.5, 0.5), 4, 0.25, 0.25, 0.25, 0);
-            block.getWorld().playSound(block.getLocation(loc), Sound.ENTITY_SLIME_ATTACK, SoundCategory.BLOCKS, 2.0f, 0.5f);
+            Block b = block.getType().isSolid() ? block.getRelative(event.getBlockFace()) : block;
+            loc = b.getLocation().add(0.5, 0.5, 0.5);
+            block.getWorld().spawnParticle(Particle.TOTEM, loc, 4, 0.25, 0.25, 0.25, 0);
+            block.getWorld().playSound(loc, Sound.ENTITY_SLIME_ATTACK, SoundCategory.BLOCKS, 2.0f, 0.5f);
             return;
         }
         event.setCancelled(true);
         Player player = context.getPlayer();
         if (!GenericEventsPlugin.getInstance().playerCanBuild(player, block)) return;
         Tree tree = plugin.getRandomTree(treeType);
-        if (tree == null) return;
-        if (tree.isBlocked(block)) {
-            block.getWorld().spawnParticle(Particle.TOTEM, block.getLocation(loc).add(0.5, 0.5, 0.5), 4, 0.25, 0.25, 0.25, 0);
-            block.getWorld().playSound(block.getLocation(loc), Sound.ENTITY_SLIME_DEATH, SoundCategory.BLOCKS, 2.0f, 0.5f);
+        if (tree == null || tree.isBlocked(block)) {
+            loc = block.getLocation(loc).add(0.5, 0.5, 0.5);
+            block.getWorld().spawnParticle(Particle.TOTEM, loc, 4, 0.25, 0.25, 0.25, 0);
+            block.getWorld().playSound(loc, Sound.ENTITY_SLIME_DEATH, SoundCategory.BLOCKS, 2.0f, 0.5f);
             return;
         }
         plugin.getLogger().info(String.format("Growing %s for %s", tree.getName(), player.getName()));
         tree.growSlowly(plugin, player, block);
-        block.getWorld().spawnParticle(Particle.VILLAGER_HAPPY, block.getLocation(loc).add(0.5, 0.5, 0.5), 8, 0.25, 0.25, 0.25, 0);
-        block.getWorld().playSound(block.getLocation(loc), Sound.ENTITY_SLIME_JUMP, SoundCategory.BLOCKS, 2.0f, 1.5f);
+        loc = block.getLocation(loc).add(0.5, 0.5, 0.5);
+        block.getWorld().spawnParticle(Particle.VILLAGER_HAPPY, loc, 8, 0.25, 0.25, 0.25, 0);
+        block.getWorld().playSound(loc, Sound.ENTITY_SLIME_JUMP, SoundCategory.BLOCKS, 2.0f, 1.5f);
         if (player.getGameMode() != GameMode.CREATIVE) {
             ItemStack item = context.getItemStack();
             item.setAmount(item.getAmount() - 1);
