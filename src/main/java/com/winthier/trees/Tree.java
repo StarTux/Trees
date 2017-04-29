@@ -195,6 +195,11 @@ public final class Tree {
         case DEAD_BUSH:
         case SNOW:
         case TORCH:
+        case ICE:
+        case GLASS:
+        case STAINED_GLASS:
+        case THIN_GLASS:
+        case STAINED_GLASS_PANE:
             return true;
         default:
             return false;
