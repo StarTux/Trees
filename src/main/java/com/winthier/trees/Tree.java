@@ -182,6 +182,7 @@ public final class Tree {
         case GRASS:
         case GRASS_PATH:
         case GRAVEL:
+        case SAND:
         case LEAVES:
         case LEAVES_2:
         case LONG_GRASS:
@@ -192,6 +193,8 @@ public final class Tree {
         case RED_ROSE:
         case YELLOW_FLOWER:
         case DEAD_BUSH:
+        case SNOW:
+        case TORCH:
             return true;
         default:
             return false;
