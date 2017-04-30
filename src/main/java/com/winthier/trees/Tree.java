@@ -180,6 +180,7 @@ public final class Tree {
         case AIR:
         case DIRT:
         case GRASS:
+        case MYCEL:
         case GRASS_PATH:
         case GRAVEL:
         case SAND:
