@@ -1,5 +1,6 @@
 package com.winthier.trees;
 
+import com.winthier.custom.CustomPlugin;
 import com.winthier.custom.event.CustomRegisterEvent;
 import java.io.File;
 import java.io.IOException;
@@ -7,6 +8,7 @@ import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 import java.util.UUID;
 import lombok.Getter;
@@ -18,6 +20,8 @@ import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.inventory.ShapelessRecipe;
+import org.bukkit.material.MaterialData;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.BlockIterator;
@@ -27,6 +31,7 @@ public final class TreesPlugin extends JavaPlugin implements Listener {
     private List<Tree> trees;
     private final Random random = new Random(System.currentTimeMillis());
     private final HashMap<UUID, Session> sessions = new HashMap<>();
+    private int recipeCount = 0;
 
     @Override
     public void onEnable() {
@@ -38,6 +43,41 @@ public final class TreesPlugin extends JavaPlugin implements Listener {
         trees = null;
         reloadConfig();
         event.addItem(new FertilizerItem(this));
+        event.addTask(new Runnable() {
+                @Override public void run() {
+                    recipeCount = 0;
+                    List<MaterialData> mdat = new ArrayList<>();
+                    mdat.add(new MaterialData(Material.EGG));
+                    mdat.add(new MaterialData(Material.MELON));
+                    mdat.add(new MaterialData(Material.CARROT_ITEM));
+                    mdat.add(new MaterialData(Material.POTATO_ITEM));
+                    recipeRec(mdat, 0, 8, new HashMap<MaterialData, Integer>());
+                    getLogger().info("" + recipeCount + " Fertilizer recipes registered");
+                }
+            });
+    }
+
+    private void recipeRec(List<MaterialData> mdat, int index, int remain, HashMap<MaterialData, Integer> ing) {
+        if (remain == 0) {
+            ShapelessRecipe recipe = new ShapelessRecipe(CustomPlugin.getInstance().getItemManager().spawnItemStack(FertilizerItem.CUSTOM_ID, 1));
+            recipe.addIngredient(Material.DIRT);
+            for (Map.Entry<MaterialData, Integer> entry: ing.entrySet()) {
+                recipe.addIngredient(entry.getValue(), entry.getKey());
+            }
+            if (getServer().addRecipe(recipe)) {
+                recipeCount += 1;
+            } else {
+                getLogger().warning("Failed to register recipe: " + recipe);
+            }
+        } else if (index >= mdat.size()) {
+            return;
+        } else {
+            for (int i = 0; i <= remain; i += 1) {
+                HashMap<MaterialData, Integer> ingredients = (HashMap<MaterialData, Integer>)ing.clone();
+                if (i > 0) ingredients.put(mdat.get(index), i);
+                recipeRec(mdat, index + 1, remain - i, ingredients);
+            }
+        }
     }
 
     @Override
