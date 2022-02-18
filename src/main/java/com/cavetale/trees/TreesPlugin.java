@@ -1,6 +1,8 @@
 package com.cavetale.trees;
 
+import com.cavetale.core.event.block.PlayerBlockAbilityQuery;
 import com.cavetale.mytems.item.tree.CustomTreeType;
+import com.cavetale.mytems.item.tree.TreeSeed;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -10,7 +12,11 @@ import java.util.logging.Level;
 import java.util.zip.ZipFile;
 import lombok.Getter;
 import org.bukkit.Bukkit;
+import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
+import org.bukkit.block.Block;
+import org.bukkit.entity.Player;
+import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.structure.Structure;
 
@@ -25,9 +31,17 @@ public final class TreesPlugin extends JavaPlugin {
         instance = this;
         treesCommand.enable();
         loadTreeStructures();
+        for (CustomTreeType it : CustomTreeType.values()) {
+            if (!(it.seedMytems.getMytem() instanceof TreeSeed treeSeed)) continue;
+            treeSeed.setRightClickHandler(event -> onRightClick(event, it));
+        }
     }
 
     protected void loadTreeStructures() {
+        for (CustomTreeType it : CustomTreeType.values()) {
+            if (!(it.seedMytems.getMytem() instanceof TreeSeed treeSeed)) continue;
+            treeSeed.setRightClickHandler(null);
+        }
         treeStructureList.clear();
         loadZipTreeStructures();
         loadLocalTreeStructures();
@@ -113,5 +127,24 @@ public final class TreesPlugin extends JavaPlugin {
             if (it.type == type && name.equals(it.name)) return it;
         }
         return null;
+    }
+
+    public List<TreeStructure> findTreeStructures(CustomTreeType type) {
+        List<TreeStructure> list = new ArrayList<>();
+        for (TreeStructure it : treeStructureList) {
+            if (it.type == type) list.add(it);
+        }
+        return list;
+    }
+
+    protected void onRightClick(PlayerInteractEvent event, CustomTreeType type) {
+        if (!event.hasBlock()) return;
+        Block block = event.getClickedBlock();
+        if (block.getType() != Material.FARMLAND) return;
+        Block above = block.getRelative(0, 1, 0);
+        if (!above.isEmpty()) return;
+        Player player = event.getPlayer();
+        if (!PlayerBlockAbilityQuery.Action.BUILD.query(player, block)) return;
+        if (!PlayerBlockAbilityQuery.Action.BUILD.query(player, above)) return;
     }
 }
