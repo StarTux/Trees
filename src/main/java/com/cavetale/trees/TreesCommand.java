@@ -7,6 +7,7 @@ import com.cavetale.core.command.AbstractCommand;
 import com.cavetale.core.command.CommandArgCompleter;
 import com.cavetale.core.command.CommandWarn;
 import com.cavetale.mytems.item.tree.CustomTreeType;
+import com.cavetale.trees.util.Transform;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
@@ -162,7 +163,7 @@ public final class TreesCommand extends AbstractCommand<TreesPlugin> {
                     }
                     Vec3i vec1 = placeBlockList.get(index++);
                     BlockData blockData = blockDataMap.get(vec1);
-                    Vec3i vec2 = SeedPlantTask.transform(vec1.subtract(treeStructure.sapling), rotation, mirror);
+                    Vec3i vec2 = Transform.rotate(vec1.subtract(treeStructure.sapling), rotation, mirror);
                     player.sendMessage(vec1 + " => " + vec2);
                     try {
                         player.sendBlockChange(vec2.add(selection.min).toLocation(w), blockData);

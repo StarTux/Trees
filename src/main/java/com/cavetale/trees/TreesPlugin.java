@@ -1,6 +1,6 @@
 package com.cavetale.trees;
 
-import com.cavetale.core.event.block.PlayerBlockAbilityQuery;
+import com.cavetale.area.struct.Vec3i;
 import com.cavetale.mytems.item.tree.CustomTreeType;
 import com.cavetale.mytems.item.tree.TreeSeed;
 import java.io.File;
@@ -12,6 +12,7 @@ import java.util.logging.Level;
 import java.util.zip.ZipFile;
 import lombok.Getter;
 import org.bukkit.Bukkit;
+import org.bukkit.GameMode;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.block.Block;
@@ -144,7 +145,17 @@ public final class TreesPlugin extends JavaPlugin {
         Block above = block.getRelative(0, 1, 0);
         if (!above.isEmpty()) return;
         Player player = event.getPlayer();
-        if (!PlayerBlockAbilityQuery.Action.BUILD.query(player, block)) return;
-        if (!PlayerBlockAbilityQuery.Action.BUILD.query(player, above)) return;
+        if (player.getGameMode() == GameMode.SPECTATOR) return;
+        SeedPlantTask task = new SeedPlantTask(this, player, type, player.getWorld(), Vec3i.of(above));
+        Bukkit.getScheduler().runTask(this, () -> task.start());
+        switch (player.getGameMode()) {
+        case CREATIVE:
+            break;
+        case SURVIVAL:
+        case ADVENTURE:
+        default:
+            event.getItem().subtract(1);
+            break;
+        }
     }
 }
