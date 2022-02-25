@@ -31,9 +31,9 @@ public final class TreesCommand extends AbstractCommand<TreesPlugin> {
 
     @Override
     protected void onEnable() {
-        rootNode.addChild("info").denyTabCompletion()
-            .description("Info Command")
-            .senderCaller(this::info);
+        rootNode.addChild("reload").denyTabCompletion()
+            .description("Reload trees")
+            .senderCaller(this::reload);
         rootNode.addChild("create").arguments("<type> <name>")
             .completers(CommandArgCompleter.enumLowerList(CustomTreeType.class),
                         CommandArgCompleter.EMPTY)
@@ -63,8 +63,11 @@ public final class TreesCommand extends AbstractCommand<TreesPlugin> {
             .playerCaller(this::grow);
     }
 
-    protected boolean info(CommandSender sender, String[] args) {
-        return false;
+    protected boolean reload(CommandSender sender, String[] args) {
+        if (args.length != 0) return false;
+        plugin.loadTreeStructures();
+        sender.sendMessage(text("Reloading tree structures...", YELLOW));
+        return true;
     }
 
     protected boolean create(Player player, String[] args) {

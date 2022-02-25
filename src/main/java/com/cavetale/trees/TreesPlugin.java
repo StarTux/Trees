@@ -1,6 +1,7 @@
 package com.cavetale.trees;
 
 import com.cavetale.area.struct.Vec3i;
+import com.cavetale.core.event.block.PlayerBlockAbilityQuery;
 import com.cavetale.mytems.item.tree.CustomTreeType;
 import com.cavetale.mytems.item.tree.TreeSeed;
 import java.io.File;
@@ -25,7 +26,7 @@ public final class TreesPlugin extends JavaPlugin {
     @Getter protected static TreesPlugin instance;
     private static final String STRUCTURE_SUFFIX = ".dat";
     private final TreesCommand treesCommand = new TreesCommand(this);
-    protected final List<TreeStructure> treeStructureList = new ArrayList<>();
+    protected List<TreeStructure> treeStructureList = List.of();
 
     @Override
     public void onEnable() {
@@ -38,20 +39,34 @@ public final class TreesPlugin extends JavaPlugin {
         }
     }
 
-    protected void loadTreeStructures() {
+    @Override
+    public void onDisable() {
         for (CustomTreeType it : CustomTreeType.values()) {
             if (!(it.seedMytems.getMytem() instanceof TreeSeed treeSeed)) continue;
             treeSeed.setRightClickHandler(null);
         }
-        treeStructureList.clear();
-        loadZipTreeStructures();
-        loadLocalTreeStructures();
-        for (TreeStructure it : treeStructureList) {
-            it.load();
-        }
     }
 
-    protected void loadZipTreeStructures() {
+    protected void loadTreeStructures() {
+        Bukkit.getScheduler().runTaskAsynchronously(this, () -> {
+                long time = System.currentTimeMillis();
+                List<TreeStructure> loadList = new ArrayList<>();
+                loadZipTreeStructures(loadList);
+                loadLocalTreeStructures(loadList);
+                for (TreeStructure it : loadList) {
+                    it.load();
+                }
+                time = System.currentTimeMillis() - time;
+                double seconds = (double) time / 1000.0;
+                Bukkit.getScheduler().runTask(this, () -> {
+                        treeStructureList = loadList;
+                        getLogger().info(treeStructureList.size() + " tree structures loaded"
+                                         + String.format(" in %.3fs", seconds));
+                    });
+            });
+    }
+
+    protected void loadZipTreeStructures(List<TreeStructure> list) {
         final String fn = "loadZipTreeStructures";
         try (ZipFile zipFile = new ZipFile(getFile())) {
             zipFile.stream().forEach(zipEntry -> {
@@ -76,14 +91,14 @@ public final class TreesPlugin extends JavaPlugin {
                         getLogger().log(Level.SEVERE, fn + " " + name, ioe);
                         return;
                     }
-                    treeStructureList.add(new TreeStructure(customTreeType, filename, structure));
+                    list.add(new TreeStructure(customTreeType, filename, structure));
                 });
         } catch (IOException ioe) {
             getLogger().log(Level.SEVERE, fn, ioe);
         }
     }
 
-    protected void loadLocalTreeStructures() {
+    protected void loadLocalTreeStructures(List<TreeStructure> list) {
         final String fn = "loadLocalTreeStructures";
         File folder = new File(getDataFolder(), "trees");
         if (!folder.isDirectory()) return;
@@ -101,7 +116,7 @@ public final class TreesPlugin extends JavaPlugin {
                     getLogger().log(Level.SEVERE, fn + " " + file, ioe);
                     continue;
                 }
-                treeStructureList.add(new TreeStructure(customTreeType, filename, structure));
+                list.add(new TreeStructure(customTreeType, filename, structure));
             }
         }
     }
@@ -146,6 +161,7 @@ public final class TreesPlugin extends JavaPlugin {
         if (!above.isEmpty()) return;
         Player player = event.getPlayer();
         if (player.getGameMode() == GameMode.SPECTATOR) return;
+        if (!PlayerBlockAbilityQuery.Action.BUILD.query(player, block)) return;
         SeedPlantTask task = new SeedPlantTask(this, player, type, player.getWorld(), Vec3i.of(above));
         Bukkit.getScheduler().runTask(this, () -> task.start());
         switch (player.getGameMode()) {

@@ -24,12 +24,28 @@ import static org.bukkit.persistence.PersistentDataType.*;
 
 @RequiredArgsConstructor @Data
 public final class TreeStructure {
+    /**
+     * These materials determine where which blocks count as the
+     * floor.  They are also not considered part of any tree.
+     */
     public static final Set<Material> GROUND_MATERIALS = EnumSet.of(Material.DIRT, new Material[] {
             Material.COARSE_DIRT,
             Material.GRASS_BLOCK,
             Material.MOSS_BLOCK,
             Material.ROOTED_DIRT,
+            Material.STONE,
         });
+    /**
+     * In addition to ground materials, ignored materials are not
+     * considered part of any tree within createPlaceBlockList().
+     */
+    public static final Set<Material> IGNORED_MATERIALS = EnumSet.of(Material.DIRT, new Material[] {
+            Material.SNOW,
+        });
+    /**
+     * Vine materials, in addition to leaves, are placed after any
+     * other block within createPlaceBlockList().
+     */
     public static final Set<Material> VINE_MATERIALS = EnumSet.of(Material.VINE, new Material[] {
             Material.CAVE_VINES,
             Material.CAVE_VINES_PLANT,
@@ -194,6 +210,7 @@ public final class TreeStructure {
                 Material nborMat = nborBlock.getMaterial();
                 if (nborMat.isEmpty()) continue;
                 if (GROUND_MATERIALS.contains(nborMat)) continue;
+                if (IGNORED_MATERIALS.contains(nborMat)) continue;
                 blockList.add(nborVec);
             }
         }
