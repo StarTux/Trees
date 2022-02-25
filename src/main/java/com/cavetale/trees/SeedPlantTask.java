@@ -157,13 +157,18 @@ public final class SeedPlantTask {
                 world.playSound(location, Sound.BLOCK_GRASS_BREAK, SoundCategory.BLOCKS, 0.5f, 1.75f);
             }
             return;
-        } else if (ticks == saplingTicks && !valid) {
-            stop();
-            sapling.toBlock(world).setType(Material.AIR);
-            drop();
-            Location location = sapling.toLocation(world).add(0.5, 0.5, 0.5);
-            world.playSound(location, Sound.BLOCK_GRASS_BREAK, SoundCategory.BLOCKS, 1.0f, 0.5f);
-            return;
+        } else if (ticks == saplingTicks) {
+            if (!valid) {
+                stop();
+                sapling.toBlock(world).setType(Material.AIR);
+                drop();
+                Location location = sapling.toLocation(world).add(0.5, 0.5, 0.5);
+                world.playSound(location, Sound.BLOCK_GRASS_BREAK, SoundCategory.BLOCKS, 1.0f, 0.5f);
+                return;
+            }
+            plugin.getLogger().info("Growing " + type + " " + treeStructure.name
+                                    + " at " + world.getName() + " " + sapling
+                                    + " for " + player.getName());
         } else {
             for (int i = 0; i < 8;) {
                 if (blockIndex >= placeBlockList.size()) {

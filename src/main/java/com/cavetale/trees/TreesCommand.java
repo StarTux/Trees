@@ -37,6 +37,9 @@ public final class TreesCommand extends AbstractCommand<TreesPlugin> {
         rootNode.addChild("info").denyTabCompletion()
             .description("Print tree info")
             .senderCaller(this::info);
+        rootNode.addChild("test").denyTabCompletion()
+            .description("Test all trees")
+            .senderCaller(this::test);
         rootNode.addChild("create").arguments("<type> <name>")
             .completers(CommandArgCompleter.enumLowerList(CustomTreeType.class),
                         CommandArgCompleter.EMPTY)
@@ -83,6 +86,23 @@ public final class TreesCommand extends AbstractCommand<TreesPlugin> {
         return true;
     }
 
+    protected boolean test(CommandSender sender, String[] args) {
+        if (args.length != 0) return false;
+        int errorCount = 0;
+        int okCount = 0;
+        for (TreeStructure it : plugin.treeStructureList) {
+            if (!it.testPlaceBlockList()) {
+                sender.sendMessage(text("Too few place blocks: " + it.type + " " + it.name, YELLOW));
+                errorCount += 1;
+                continue;
+            }
+            okCount += 1;
+        }
+        sender.sendMessage(text("Errors: " + errorCount, RED));
+        sender.sendMessage(text("OK: " + okCount, GREEN));
+        return true;
+    }
+
     protected boolean create(Player player, String[] args) {
         if (args.length != 2) return false;
         String typeArg = args[0];
@@ -107,6 +127,9 @@ public final class TreesCommand extends AbstractCommand<TreesPlugin> {
         TreeStructure.PreprocessResult pr = treeStructure.preprocess(w.getName(), cuboid.min);
         if (pr != TreeStructure.PreprocessResult.SUCCESS) {
             throw new CommandWarn("Preprocessing failed: " + cuboid + ", " + pr);
+        }
+        if (!treeStructure.testPlaceBlockList()) {
+            throw new CommandWarn("Too few placeable blocks: " + cuboid);
         }
         plugin.treeStructureList.add(treeStructure);
         if (!plugin.saveTreeStructure(treeStructure)) {
@@ -152,7 +175,10 @@ public final class TreesCommand extends AbstractCommand<TreesPlugin> {
                 TreeStructure treeStructure = new TreeStructure(type, name, structure);
                 TreeStructure.PreprocessResult pr = treeStructure.preprocess(w.getName(), cuboid.min);
                 if (pr != TreeStructure.PreprocessResult.SUCCESS) {
-                    throw new CommandWarn("Preprocessing failed: " + cuboid + ", " + pr);
+                    throw new CommandWarn("Preprocessing failed: " + name + ", " + cuboid + ", " + pr);
+                }
+                if (!treeStructure.testPlaceBlockList()) {
+                    throw new CommandWarn("Too few placeable blocks: " + name + ", " + cuboid);
                 }
                 plugin.treeStructureList.add(treeStructure);
                 if (!plugin.saveTreeStructure(treeStructure)) {

@@ -243,4 +243,8 @@ public final class TreeStructure {
     public List<Vec3i> createPlaceBlockList() {
         return createPlaceBlockList(createBlockDataMap());
     }
+
+    public boolean testPlaceBlockList() {
+        return createPlaceBlockList().size() >= 8;
+    }
 }
