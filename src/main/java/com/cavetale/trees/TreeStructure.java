@@ -71,6 +71,10 @@ public final class TreeStructure {
     /** Marks the relative spot where the sapling goes. */
     protected Vec3i sapling;
 
+    static {
+        IGNORED_MATERIALS.addAll(Tag.SIGNS.getValues());
+    }
+
     /**
      * Call after loading from file in order to pull the metadata out
      * of the structure NBT.
