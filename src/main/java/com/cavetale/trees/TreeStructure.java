@@ -39,6 +39,7 @@ public final class TreeStructure {
             Material.TWISTING_VINES_PLANT,
             Material.WEEPING_VINES,
             Material.WEEPING_VINES_PLANT,
+            Material.SNOW,
         });
     public static final String ORIGIN_WORLD = "origin_world";
     public static final String ORIGIN = "origin";
@@ -75,6 +76,12 @@ public final class TreeStructure {
             : Vec3i.ZERO;
     }
 
+    public enum PreprocessResult {
+        SUCCESS,
+        NO_FLOOR,
+        NO_SAPLING;
+    }
+
     /**
      * Call after creation of a new structure in order to find the sapling spots.
      * @param theOriginWorld the origin world name.
@@ -82,7 +89,7 @@ public final class TreeStructure {
      * @return true if sapling and origin were successfully determined
      *         and saved, false otherwise.
      */
-    public boolean preprocess(@NonNull String theOriginWorld, @NonNull Vec3i offset) {
+    public PreprocessResult preprocess(@NonNull String theOriginWorld, @NonNull Vec3i offset) {
         PersistentDataContainer pdc = structure.getPersistentDataContainer();
         this.originWorld = theOriginWorld;
         this.origin = offset;
@@ -103,7 +110,7 @@ public final class TreeStructure {
                 }
             }
         }
-        if (tallestGroundBlock < 0) return false;
+        if (tallestGroundBlock < 0) return PreprocessResult.NO_FLOOR;
         List<Vec3i> saplingBlockList = new ArrayList<>();
         for (var palette : structure.getPalettes()) {
             for (var blockState : palette.getBlocks()) {
@@ -114,7 +121,7 @@ public final class TreeStructure {
                 }
             }
         }
-        if (saplingBlockList.isEmpty()) return false;
+        if (saplingBlockList.isEmpty()) return PreprocessResult.NO_SAPLING;
         int totalX = 0;
         int totalZ = 0;
         for (Vec3i it : saplingBlockList) {
@@ -129,7 +136,7 @@ public final class TreeStructure {
                 sapling.y,
                 sapling.z,
             });
-        return true;
+        return PreprocessResult.SUCCESS;
     }
 
     public void show(Player player, Vec3i offset) {
