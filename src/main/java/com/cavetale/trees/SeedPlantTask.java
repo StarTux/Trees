@@ -185,7 +185,7 @@ public final class SeedPlantTask {
                     return;
                 }
                 if (blockData instanceof Leaves leaves) {
-                    leaves.setDistance(0);
+                    leaves.setDistance(leaves.getMinimumDistance());
                     leaves.setPersistent(true);
                 }
                 Transform.rotate(blockData, rotation, mirror);
