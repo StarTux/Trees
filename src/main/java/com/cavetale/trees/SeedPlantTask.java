@@ -185,7 +185,8 @@ public final class SeedPlantTask {
                     return;
                 }
                 if (blockData instanceof Leaves leaves) {
-                    leaves.setPersistent(false);
+                    leaves.setDistance(0);
+                    leaves.setPersistent(true);
                 }
                 Transform.rotate(blockData, rotation, mirror);
                 new PlayerChangeBlockEvent(player, block, blockData).callEvent();
