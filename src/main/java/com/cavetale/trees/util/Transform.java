@@ -9,6 +9,7 @@ import org.bukkit.block.data.BlockData;
 import org.bukkit.block.data.Directional;
 import org.bukkit.block.data.MultipleFacing;
 import org.bukkit.block.data.Orientable;
+import org.bukkit.block.data.type.Wall;
 import org.bukkit.block.structure.Mirror;
 import org.bukkit.block.structure.StructureRotation;
 
@@ -116,6 +117,23 @@ public final class Transform {
             Axis axis = rotate(ori.getAxis(), rotation);
             if (ori.getAxes().contains(axis)) {
                 ori.setAxis(axis);
+            }
+        }
+        if (blockData instanceof Wall wall) {
+            BlockFace[] faces = {
+                BlockFace.NORTH,
+                BlockFace.EAST,
+                BlockFace.SOUTH,
+                BlockFace.WEST,
+            };
+            Wall.Height[] heights = new Wall.Height[faces.length];
+            for (int i = 0; i < faces.length; i += 1) {
+                BlockFace face = faces[i];
+                heights[i] = wall.getHeight(face);
+            }
+            for (int i = 0; i < heights.length; i += 1) {
+                BlockFace face = rotate(faces[i], rotation, mirror);
+                wall.setHeight(face, heights[i]);
             }
         }
     }
