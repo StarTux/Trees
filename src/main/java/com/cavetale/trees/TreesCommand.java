@@ -5,15 +5,21 @@ import com.cavetale.area.struct.Vec3i;
 import com.cavetale.area.worldedit.WorldEdit;
 import com.cavetale.core.command.AbstractCommand;
 import com.cavetale.core.command.CommandArgCompleter;
+import com.cavetale.core.command.CommandNode;
 import com.cavetale.core.command.CommandWarn;
 import com.cavetale.mytems.item.tree.CustomTreeType;
 import com.cavetale.trees.util.Transform;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.IntPredicate;
 import java.util.logging.Level;
 import org.bukkit.Bukkit;
+import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.World;
+import org.bukkit.block.Block;
+import org.bukkit.block.Sign;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.block.structure.Mirror;
 import org.bukkit.block.structure.StructureRotation;
@@ -67,6 +73,11 @@ public final class TreesCommand extends AbstractCommand<TreesPlugin> {
                         CommandArgCompleter.enumLowerList(StructureRotation.class),
                         CommandArgCompleter.enumLowerList(Mirror.class))
             .playerCaller(this::grow);
+        CommandNode dangerNode = rootNode.addChild("danger")
+            .description("Dangerous commands! Do not touch unless in a void world!");
+        dangerNode.addChild("pasteall")
+            .description("Paste all trees")
+            .playerCaller(this::dangerPasteAll);
     }
 
     protected boolean reload(CommandSender sender, String[] args) {
@@ -267,6 +278,7 @@ public final class TreesCommand extends AbstractCommand<TreesPlugin> {
                         if (index >= placeBlockList.size()) break;
                         Vec3i vec1 = placeBlockList.get(index++);
                         BlockData blockData = blockDataMap.get(vec1);
+                        Transform.rotate(blockData, rotation, mirror);
                         Vec3i vec2 = Transform.rotate(vec1.subtract(treeStructure.sapling), rotation, mirror);
                         try {
                             player.sendBlockChange(vec2.add(selection.min).toLocation(w), blockData);
@@ -279,6 +291,39 @@ public final class TreesCommand extends AbstractCommand<TreesPlugin> {
                 }
             };
         task.runTaskTimer(plugin, 1L, 1L);
+        return true;
+    }
+
+    protected boolean dangerPasteAll(Player player, String[] args) {
+        if (args.length != 0) return false;
+        final Location location = player.getLocation();
+        final int y = location.getBlockY();
+        int z = location.getBlockZ();
+        for (CustomTreeType type : CustomTreeType.values()) {
+            List<TreeStructure> treeStructureList = plugin.findTreeStructures(type);
+            int x = location.getBlockX();
+            int maxWidth = 0;
+            for (TreeStructure treeStructure : treeStructureList) {
+                Block block = location.getWorld().getBlockAt(x, y, z);
+                treeStructure.structure.place(block.getLocation(), false,
+                                              StructureRotation.NONE, Mirror.NONE,
+                                              0, 1.0f,
+                                              ThreadLocalRandom.current());
+                x += treeStructure.structure.getSize().getX() + 1;
+                maxWidth = Math.max(maxWidth, (int) treeStructure.structure.getSize().getZ());
+                while (!block.isEmpty() && block.getY() < 255) block = block.getRelative(0, 1, 0);
+                block.setBlockData(Material.OAK_SIGN.createBlockData());
+                if (block.getState() instanceof Sign sign) {
+                    sign.line(0, text("" + type.name().toLowerCase()));
+                    sign.line(1, text(treeStructure.getName()));
+                    sign.line(2, text("" + ((int) treeStructure.structure.getSize().getX())
+                                      + "x" + ((int) treeStructure.structure.getSize().getY())
+                                      + "x" + ((int) treeStructure.structure.getSize().getZ())));
+                    sign.update();
+                }
+            }
+            z += maxWidth + 1;
+        }
         return true;
     }
 

@@ -93,6 +93,7 @@ public final class Transform {
      * @param mirror the mirror
      */
     public static void rotate(BlockData blockData, StructureRotation rotation, Mirror mirror) {
+        if (rotation == StructureRotation.NONE && mirror == Mirror.NONE) return;
         if (blockData instanceof Directional directional) {
             BlockFace face = rotate(directional.getFacing(), rotation, mirror);
             if (directional.getFaces().contains(face)) {
@@ -126,6 +127,7 @@ public final class Transform {
                 BlockFace.SOUTH,
                 BlockFace.WEST,
             };
+            String old = wall.getAsString(false);
             Wall.Height[] heights = new Wall.Height[faces.length];
             for (int i = 0; i < faces.length; i += 1) {
                 BlockFace face = faces[i];
