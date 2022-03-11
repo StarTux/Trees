@@ -18,11 +18,16 @@ import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.Listener;
+import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.event.world.StructureGrowEvent;
+import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.structure.Structure;
 
-public final class TreesPlugin extends JavaPlugin {
+public final class TreesPlugin extends JavaPlugin implements Listener {
     @Getter protected static TreesPlugin instance;
     private static final String STRUCTURE_SUFFIX = ".dat";
     private final TreesCommand treesCommand = new TreesCommand(this);
@@ -37,6 +42,7 @@ public final class TreesPlugin extends JavaPlugin {
             if (!(it.seedMytems.getMytem() instanceof TreeSeed treeSeed)) continue;
             treeSeed.setRightClickHandler(event -> onRightClick(event, it));
         }
+        Bukkit.getPluginManager().registerEvents(this, this);
     }
 
     @Override
@@ -154,6 +160,7 @@ public final class TreesPlugin extends JavaPlugin {
     }
 
     protected void onRightClick(PlayerInteractEvent event, CustomTreeType type) {
+        if (event.getHand() != EquipmentSlot.HAND) return;
         if (!event.hasBlock()) return;
         Block block = event.getClickedBlock();
         if (block.getType() != Material.FARMLAND) return;
@@ -163,7 +170,7 @@ public final class TreesPlugin extends JavaPlugin {
         if (player.getGameMode() == GameMode.SPECTATOR) return;
         if (!PlayerBlockAbilityQuery.Action.BUILD.query(player, block)) return;
         SeedPlantTask task = new SeedPlantTask(this, player, type, player.getWorld(), Vec3i.of(above));
-        Bukkit.getScheduler().runTask(this, () -> task.start());
+        task.start();
         switch (player.getGameMode()) {
         case CREATIVE:
             break;
@@ -173,5 +180,16 @@ public final class TreesPlugin extends JavaPlugin {
             event.getItem().subtract(1);
             break;
         }
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    private void onStructureGrow(StructureGrowEvent event) {
+        Block block = event.getLocation().getBlock();
+        if (SeedPlantTask.SAPLING_BLOCKS.contains(block)) event.setCancelled(true);
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    private void onBlockBreak(BlockBreakEvent event) {
+        if (SeedPlantTask.SAPLING_BLOCKS.contains(event.getBlock())) event.setCancelled(true);
     }
 }

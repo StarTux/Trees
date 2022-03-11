@@ -75,8 +75,9 @@ public final class TreesCommand extends AbstractCommand<TreesPlugin> {
             .playerCaller(this::grow);
         CommandNode dangerNode = rootNode.addChild("danger")
             .description("Dangerous commands! Do not touch unless in a void world!");
-        dangerNode.addChild("pasteall")
+        dangerNode.addChild("pasteall").arguments("<type>")
             .description("Paste all trees")
+            .completers(CommandArgCompleter.enumLowerList(CustomTreeType.class))
             .playerCaller(this::dangerPasteAll);
     }
 
@@ -295,35 +296,41 @@ public final class TreesCommand extends AbstractCommand<TreesPlugin> {
     }
 
     protected boolean dangerPasteAll(Player player, String[] args) {
-        if (args.length != 0) return false;
+        if (args.length != 1) return false;
         final Location location = player.getLocation();
         final int y = location.getBlockY();
-        int z = location.getBlockZ();
-        for (CustomTreeType type : CustomTreeType.values()) {
-            List<TreeStructure> treeStructureList = plugin.findTreeStructures(type);
-            int x = location.getBlockX();
-            int maxWidth = 0;
-            for (TreeStructure treeStructure : treeStructureList) {
-                Block block = location.getWorld().getBlockAt(x, y, z);
-                treeStructure.structure.place(block.getLocation(), false,
-                                              StructureRotation.NONE, Mirror.NONE,
-                                              0, 1.0f,
-                                              ThreadLocalRandom.current());
-                x += treeStructure.structure.getSize().getX() + 1;
-                maxWidth = Math.max(maxWidth, (int) treeStructure.structure.getSize().getZ());
-                while (!block.isEmpty() && block.getY() < 255) block = block.getRelative(0, 1, 0);
-                block.setBlockData(Material.OAK_SIGN.createBlockData());
-                if (block.getState() instanceof Sign sign) {
-                    sign.line(0, text("" + type.name().toLowerCase()));
-                    sign.line(1, text(treeStructure.getName()));
-                    sign.line(2, text("" + ((int) treeStructure.structure.getSize().getX())
-                                      + "x" + ((int) treeStructure.structure.getSize().getY())
-                                      + "x" + ((int) treeStructure.structure.getSize().getZ())));
-                    sign.update();
-                }
-            }
-            z += maxWidth + 1;
+        final int z = location.getBlockZ();
+        final CustomTreeType type;
+        try {
+            type = CustomTreeType.valueOf(args[0].toUpperCase());
+        } catch (IllegalArgumentException iae) {
+            throw new CommandWarn("Invalid type: " + args[0]);
         }
+        List<TreeStructure> treeStructureList = plugin.findTreeStructures(type);
+        int x = location.getBlockX();
+        int maxWidth = 0;
+        for (TreeStructure treeStructure : treeStructureList) {
+            Block block = location.getWorld().getBlockAt(x, y, z);
+            treeStructure.structure.place(block.getLocation(), false,
+                                          StructureRotation.NONE, Mirror.NONE,
+                                          0, 1.0f,
+                                          ThreadLocalRandom.current());
+            x += treeStructure.structure.getSize().getX() + 1;
+            maxWidth = Math.max(maxWidth, (int) treeStructure.structure.getSize().getZ());
+            while (!block.isEmpty() && block.getY() < 255) block = block.getRelative(0, 1, 0);
+            block.setBlockData(Material.OAK_SIGN.createBlockData());
+            if (block.getState() instanceof Sign sign) {
+                sign.line(0, text("" + type.name().toLowerCase()));
+                sign.line(1, text(treeStructure.getName()));
+                sign.line(2, text("" + ((int) treeStructure.structure.getSize().getX())
+                                  + "x" + ((int) treeStructure.structure.getSize().getY())
+                                  + "x" + ((int) treeStructure.structure.getSize().getZ())));
+                sign.update();
+            }
+        }
+        player.sendMessage(text("Pasted " + treeStructureList.size()
+                                + " " + type.name().toLowerCase() + " trees",
+                                YELLOW));
         return true;
     }
 

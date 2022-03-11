@@ -6,6 +6,7 @@ import com.cavetale.core.event.block.PlayerChangeBlockEvent;
 import com.cavetale.mytems.item.tree.CustomTreeType;
 import com.cavetale.trees.util.Transform;
 import java.util.EnumSet;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -33,6 +34,7 @@ import org.bukkit.scheduler.BukkitTask;
 
 @RequiredArgsConstructor @Data
 public final class SeedPlantTask {
+    protected static final Set<Block> SAPLING_BLOCKS = new HashSet<>();
     public static final Set<Material> REPLACEABLES = EnumSet.of(Material.DIRT, new Material[] {
             Material.COARSE_DIRT,
             Material.GRASS_BLOCK,
@@ -93,7 +95,8 @@ public final class SeedPlantTask {
 
     public void start() {
         this.valid = initialize();
-        task = Bukkit.getScheduler().runTaskTimer(plugin, this::tick, 1L, 1L);
+        task = Bukkit.getScheduler().runTaskTimer(plugin, this::tick, 0L, 1L);
+        SAPLING_BLOCKS.add(sapling.toBlock(world));
     }
 
     private boolean initialize() {
@@ -116,6 +119,7 @@ public final class SeedPlantTask {
     }
 
     public void stop() {
+        SAPLING_BLOCKS.remove(sapling.toBlock(world));
         if (task == null) return;
         task.cancel();
     }
