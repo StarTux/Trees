@@ -10,7 +10,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
-import java.util.zip.ZipFile;
 import lombok.Getter;
 import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
@@ -57,8 +56,8 @@ public final class TreesPlugin extends JavaPlugin implements Listener {
         Bukkit.getScheduler().runTaskAsynchronously(this, () -> {
                 long time = System.currentTimeMillis();
                 List<TreeStructure> loadList = new ArrayList<>();
-                loadZipTreeStructures(loadList);
-                loadLocalTreeStructures(loadList);
+                loadTreeStructures(new File(getDataFolder(), "trees"), loadList);
+                loadTreeStructures(new File("/home/mc/public/config/Trees/trees"), loadList);
                 for (TreeStructure it : loadList) {
                     it.load();
                 }
@@ -66,48 +65,15 @@ public final class TreesPlugin extends JavaPlugin implements Listener {
                 double seconds = (double) time / 1000.0;
                 Bukkit.getScheduler().runTask(this, () -> {
                         treeStructureList = loadList;
-                        getLogger().info(treeStructureList.size() + " tree structures loaded"
-                                         + String.format(" in %.3fs", seconds));
+                        getLogger().info(treeStructureList.size() + " tree structures loaded in "
+                                         + String.format("%.3f", seconds) + "s");
                     });
             });
     }
 
-    protected void loadZipTreeStructures(List<TreeStructure> list) {
-        final String fn = "loadZipTreeStructures";
-        try (ZipFile zipFile = new ZipFile(getFile())) {
-            zipFile.stream().forEach(zipEntry -> {
-                    if (zipEntry.isDirectory()) return;
-                    String name = zipEntry.getName();
-                    String[] names = name.split("/");
-                    if (names.length != 3) return;
-                    if (!"trees".equals(names[0])) return;
-                    String filename = names[2];
-                    if (!filename.endsWith(STRUCTURE_SUFFIX)) return;
-                    filename = filename.substring(0, filename.length() - STRUCTURE_SUFFIX.length());
-                    CustomTreeType customTreeType;
-                    try {
-                        customTreeType = CustomTreeType.valueOf(names[1].toUpperCase());
-                    } catch (IllegalArgumentException iae) {
-                        return;
-                    }
-                    Structure structure;
-                    try {
-                        structure = Bukkit.getStructureManager().loadStructure(zipFile.getInputStream(zipEntry));
-                    } catch (IOException ioe) {
-                        getLogger().log(Level.SEVERE, fn + " " + name, ioe);
-                        return;
-                    }
-                    list.add(new TreeStructure(customTreeType, filename, structure));
-                });
-        } catch (IOException ioe) {
-            getLogger().log(Level.SEVERE, fn, ioe);
-        }
-    }
-
-    protected void loadLocalTreeStructures(List<TreeStructure> list) {
-        final String fn = "loadLocalTreeStructures";
-        File folder = new File(getDataFolder(), "trees");
+    private void loadTreeStructures(File folder, List<TreeStructure> list) {
         if (!folder.isDirectory()) return;
+        final String fn = "loadTreeStructures";
         for (CustomTreeType customTreeType : CustomTreeType.values()) {
             File subfolder = new File(folder, customTreeType.name().toLowerCase());
             if (!subfolder.isDirectory()) continue;
