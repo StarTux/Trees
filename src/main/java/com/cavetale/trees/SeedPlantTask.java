@@ -8,7 +8,6 @@ import com.cavetale.trees.util.Transform;
 import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
@@ -58,8 +57,6 @@ public final class SeedPlantTask {
     private TreeStructure treeStructure;
     private StructureRotation rotation = StructureRotation.NONE;
     private Mirror mirror = Mirror.NONE;
-    private Map<Vec3i, BlockData> blockDataMap;
-    private List<Vec3i> placeBlockList;
     private BukkitTask task;
     private int saplingTicks = 200;
     private int totalTicks;
@@ -108,10 +105,7 @@ public final class SeedPlantTask {
         Mirror[] mirrors = Mirror.values();
         this.rotation = rotations[random.nextInt(rotations.length)];
         this.mirror = mirrors[random.nextInt(mirrors.length)];
-        this.blockDataMap = treeStructure.createBlockDataMap();
-        this.placeBlockList = treeStructure.createPlaceBlockList(blockDataMap);
-        if (placeBlockList.size() < 2) return false;
-        for (Vec3i vec : placeBlockList) {
+        for (Vec3i vec : treeStructure.getPlaceBlockList()) {
             if (!canReplaceBlock(toWorldVector(vec).toBlock(world))) return false;
         }
         saplingTicks = 200 + random.nextInt(200) - random.nextInt(50);
@@ -175,12 +169,12 @@ public final class SeedPlantTask {
                                     + " for " + player.getName());
         } else {
             for (int i = 0; i < 8;) {
-                if (blockIndex >= placeBlockList.size()) {
+                if (blockIndex >= treeStructure.getPlaceBlockList().size()) {
                     stop();
                     return;
                 }
-                Vec3i originVector = placeBlockList.get(blockIndex++);
-                BlockData blockData = blockDataMap.get(originVector);
+                Vec3i originVector = treeStructure.getPlaceBlockList().get(blockIndex++);
+                BlockData blockData = treeStructure.getBlockDataMap().get(originVector);
                 i += Tag.LEAVES.isTagged(blockData.getMaterial()) ? 1 : 4;
                 Vec3i blockVector = toWorldVector(originVector);
                 Block block = blockVector.toBlock(world);

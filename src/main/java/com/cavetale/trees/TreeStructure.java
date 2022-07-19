@@ -4,66 +4,35 @@ import com.cavetale.area.struct.Vec3i;
 import com.cavetale.mytems.item.tree.CustomTreeType;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import lombok.Data;
-import lombok.NonNull;
-import lombok.RequiredArgsConstructor;
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
 import org.bukkit.Tag;
+import org.bukkit.block.Block;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.Player;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.structure.Structure;
+import org.bukkit.util.BlockVector;
 import static org.bukkit.persistence.PersistentDataType.*;
 
-@RequiredArgsConstructor @Data
+@Data
 public final class TreeStructure {
-    /**
-     * These materials determine where which blocks count as the
-     * floor.  They are also not considered part of any tree.
-     */
-    public static final Set<Material> GROUND_MATERIALS = EnumSet.of(Material.DIRT, new Material[] {
-            Material.COARSE_DIRT,
-            Material.GRASS_BLOCK,
-            Material.MOSS_BLOCK,
-            Material.ROOTED_DIRT,
-            Material.STONE,
-        });
-    /**
-     * In addition to ground materials, ignored materials are not
-     * considered part of any tree within createPlaceBlockList().
-     */
-    public static final Set<Material> IGNORED_MATERIALS = EnumSet.of(Material.DIRT, new Material[] {
-            Material.SNOW,
-        });
-    /**
-     * Vine materials, in addition to leaves, are placed after any
-     * other block within createPlaceBlockList().
-     */
-    public static final Set<Material> VINE_MATERIALS = EnumSet.of(Material.VINE, new Material[] {
-            Material.CAVE_VINES,
-            Material.CAVE_VINES_PLANT,
-            Material.GLOW_LICHEN,
-            Material.TWISTING_VINES,
-            Material.TWISTING_VINES,
-            Material.TWISTING_VINES_PLANT,
-            Material.WEEPING_VINES,
-            Material.WEEPING_VINES_PLANT,
-            Material.SNOW,
-        });
-    public static final String ORIGIN_WORLD = "origin_world";
-    public static final String ORIGIN = "origin";
-    public static final String SAPLING = "sapling";
+    public static final NamespacedKey ORIGIN_WORLD = NamespacedKey.fromString("trees:origin_world");
+    public static final NamespacedKey ORIGIN = NamespacedKey.fromString("trees:origin");
+    public static final NamespacedKey SAPLING = NamespacedKey.fromString("trees:sapling");
     public static final int[] EMPTY = new int[0];
     protected final CustomTreeType type;
     protected final String name;
-    protected final Structure structure;
+    private Map<Vec3i, BlockData> blockDataMap;
+    private List<Vec3i> placeBlockList;
+    private final Vec3i size;
     /** Origin world name, to identify duplicates. */
     protected String originWorld;
     /**  Origin to identify duplicates. */
@@ -71,29 +40,24 @@ public final class TreeStructure {
     /** Marks the relative spot where the sapling goes. */
     protected Vec3i sapling;
 
-    static {
-        IGNORED_MATERIALS.addAll(Tag.SIGNS.getValues());
-    }
-
-    /**
-     * Call after loading from file in order to pull the metadata out
-     * of the structure NBT.
-     */
-    public void load() {
+    public TreeStructure(final CustomTreeType type, final String name, final Structure structure) {
+        this.type = type;
+        this.name = name;
+        BlockVector blockVector = structure.getSize();
+        this.size = new Vec3i(blockVector.getBlockX(), blockVector.getBlockY(), blockVector.getBlockZ());
         PersistentDataContainer pdc = structure.getPersistentDataContainer();
-        originWorld = pdc.getOrDefault(TreesPlugin.namespacedKey(ORIGIN_WORLD),
-                                       STRING, "");
+        this.originWorld = pdc.getOrDefault(ORIGIN_WORLD, STRING, "");
         int[] intArray;
-        intArray = pdc.getOrDefault(TreesPlugin.namespacedKey(ORIGIN),
-                                    INTEGER_ARRAY, EMPTY);
-        origin = intArray.length == 3
+        intArray = pdc.getOrDefault(ORIGIN, INTEGER_ARRAY, EMPTY);
+        this.origin = intArray.length == 3
             ? new Vec3i(intArray[0], intArray[1], intArray[2])
             : Vec3i.ZERO;
-        intArray = pdc.getOrDefault(TreesPlugin.namespacedKey(SAPLING),
-                                    INTEGER_ARRAY, EMPTY);
-        sapling = intArray.length == 3
+        intArray = pdc.getOrDefault(SAPLING, INTEGER_ARRAY, EMPTY);
+        this.sapling = intArray.length == 3
             ? new Vec3i(intArray[0], intArray[1], intArray[2])
             : Vec3i.ZERO;
+        this.blockDataMap = createBlockDataMap(structure);
+        this.placeBlockList = createPlaceBlockList(blockDataMap, sapling);
     }
 
     public enum PreprocessResult {
@@ -109,12 +73,12 @@ public final class TreeStructure {
      * @return true if sapling and origin were successfully determined
      *         and saved, false otherwise.
      */
-    public PreprocessResult preprocess(@NonNull String theOriginWorld, @NonNull Vec3i offset) {
+    public PreprocessResult preprocess(Structure structure, String theOriginWorld, Vec3i offset) {
         PersistentDataContainer pdc = structure.getPersistentDataContainer();
         this.originWorld = theOriginWorld;
         this.origin = offset;
-        pdc.set(TreesPlugin.namespacedKey(ORIGIN_WORLD), STRING, originWorld);
-        pdc.set(TreesPlugin.namespacedKey(ORIGIN), INTEGER_ARRAY, new int[] {
+        pdc.set(ORIGIN_WORLD, STRING, originWorld);
+        pdc.set(ORIGIN, INTEGER_ARRAY, new int[] {
                 origin.x,
                 origin.y,
                 origin.z,
@@ -123,7 +87,7 @@ public final class TreeStructure {
         int tallestGroundBlock = -1;
         for (var palette : structure.getPalettes()) {
             for (var blockState : palette.getBlocks()) {
-                if (GROUND_MATERIALS.contains(blockState.getType())) {
+                if (Materials.GROUND.contains(blockState.getType())) {
                     if (tallestGroundBlock < blockState.getY()) {
                         tallestGroundBlock = blockState.getY();
                     }
@@ -135,7 +99,7 @@ public final class TreeStructure {
         for (var palette : structure.getPalettes()) {
             for (var blockState : palette.getBlocks()) {
                 if (blockState.getY() == tallestGroundBlock + 1) {
-                    if (!blockState.getType().isEmpty() && !GROUND_MATERIALS.contains(blockState.getType())) {
+                    if (!blockState.getType().isEmpty() && !Materials.GROUND.contains(blockState.getType())) {
                         saplingBlockList.add(new Vec3i(blockState.getX(), blockState.getY(), blockState.getZ()));
                     }
                 }
@@ -151,32 +115,35 @@ public final class TreeStructure {
         this.sapling = new Vec3i(totalX / saplingBlockList.size(),
                                  tallestGroundBlock + 1,
                                  totalZ / saplingBlockList.size());
-        pdc.set(TreesPlugin.namespacedKey(SAPLING), INTEGER_ARRAY, new int[] {
+        pdc.set(SAPLING, INTEGER_ARRAY, new int[] {
                 sapling.x,
                 sapling.y,
                 sapling.z,
             });
+        this.blockDataMap = createBlockDataMap(structure);
+        this.placeBlockList = createPlaceBlockList(blockDataMap, sapling);
         return PreprocessResult.SUCCESS;
     }
 
     public void show(Player player, Vec3i offset) {
         Map<Location, BlockData> blockChanges = new HashMap<>();
-        for (var palette : structure.getPalettes()) {
-            for (var blockState : palette.getBlocks()) {
-                Vec3i at = offset.add(blockState.getX() - sapling.x,
-                                      blockState.getY() - sapling.y,
-                                      blockState.getZ() - sapling.z);
-                blockChanges.put(at.toLocation(player.getWorld()), blockState.getBlockData());
-            }
+        for (Vec3i vec : placeBlockList) {
+            BlockData blockData = blockDataMap.get(vec);
+            Vec3i at = offset.add(vec.getX() - sapling.x,
+                                  vec.getY() - sapling.y,
+                                  vec.getZ() - sapling.z);
+            blockChanges.put(at.toLocation(player.getWorld()), blockData);
         }
         player.sendMultiBlockChange(blockChanges);
     }
 
-    public Map<Vec3i, BlockData> createBlockDataMap() {
+    private static Map<Vec3i, BlockData> createBlockDataMap(Structure structure) {
         Map<Vec3i, BlockData> blockDataMap = new HashMap<>();
         for (var blockState : structure.getPalettes().get(0).getBlocks()) {
-            blockDataMap.put(new Vec3i(blockState.getX(), blockState.getY(), blockState.getZ()),
-                             blockState.getBlockData());
+            BlockData blockData = blockState.getBlockData();
+            if (blockData == null || blockData.getMaterial().isAir()) continue;
+            Vec3i vec = new Vec3i(blockState.getX(), blockState.getY(), blockState.getZ());
+            blockDataMap.put(vec, blockData);
         }
         return blockDataMap;
     }
@@ -195,11 +162,11 @@ public final class TreeStructure {
         return result;
     }
 
-    public List<Vec3i> createPlaceBlockList(Map<Vec3i, BlockData> blockDataMap) {
+    private static List<Vec3i> createPlaceBlockList(Map<Vec3i, BlockData> blockDataMap, Vec3i start) {
         List<Vec3i> blockList = new ArrayList<>();
         Set<Vec3i> doneBlockSet = new HashSet<>();
-        blockList.add(sapling);
-        doneBlockSet.add(sapling);
+        blockList.add(start);
+        doneBlockSet.add(start);
         int blockIndex = 0;
         while (blockIndex < blockList.size()) {
             int i = blockIndex++;
@@ -213,11 +180,12 @@ public final class TreeStructure {
                 if (nborBlock == null) continue;
                 Material nborMat = nborBlock.getMaterial();
                 if (nborMat.isEmpty()) continue;
-                if (GROUND_MATERIALS.contains(nborMat)) continue;
-                if (IGNORED_MATERIALS.contains(nborMat)) continue;
+                if (Materials.GROUND.contains(nborMat)) continue;
+                if (Materials.IGNORED.contains(nborMat)) continue;
                 blockList.add(nborVec);
             }
         }
+        blockList.removeIf(v -> !blockDataMap.containsKey(v));
         // Sort them: Logs go first
         List<Vec3i> logs = new ArrayList<>();
         List<Vec3i> leaves = new ArrayList<>();
@@ -228,7 +196,7 @@ public final class TreeStructure {
                 leaves.add(vec);
             } else if (Tag.LOGS.isTagged(material)) {
                 logs.add(vec);
-            } else if (VINE_MATERIALS.contains(material)) {
+            } else if (Materials.VINE.contains(material)) {
                 leaves.add(vec);
             } else {
                 logs.add(vec);
@@ -237,14 +205,18 @@ public final class TreeStructure {
         List<Vec3i> result = new ArrayList<>();
         result.addAll(logs);
         result.addAll(leaves);
+        blockDataMap.keySet().retainAll(result);
         return result;
     }
 
-    public List<Vec3i> createPlaceBlockList() {
-        return createPlaceBlockList(createBlockDataMap());
+    public boolean testPlaceBlockList() {
+        return placeBlockList.size() >= 8;
     }
 
-    public boolean testPlaceBlockList() {
-        return createPlaceBlockList().size() >= 8;
+    public void place(Block blockOrigin) {
+        for (Vec3i vec : placeBlockList) {
+            BlockData blockData = blockDataMap.get(vec);
+            blockOrigin.getRelative(vec.x, vec.y, vec.z).setBlockData(blockData, false);
+        }
     }
 }

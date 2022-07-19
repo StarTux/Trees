@@ -11,7 +11,6 @@ import com.cavetale.mytems.item.tree.CustomTreeType;
 import com.cavetale.trees.util.Transform;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.IntPredicate;
 import java.util.logging.Level;
 import org.bukkit.Bukkit;
@@ -136,7 +135,7 @@ public final class TreesCommand extends AbstractCommand<TreesPlugin> {
         structure.fill(cuboid.min.toLocation(w),
                        cuboid.max.add(1, 1, 1).toBaseLocation(w), true);
         TreeStructure treeStructure = new TreeStructure(type, nameArg, structure);
-        TreeStructure.PreprocessResult pr = treeStructure.preprocess(w.getName(), cuboid.min);
+        TreeStructure.PreprocessResult pr = treeStructure.preprocess(structure, w.getName(), cuboid.min);
         if (pr != TreeStructure.PreprocessResult.SUCCESS) {
             throw new CommandWarn("Preprocessing failed: " + cuboid + ", " + pr);
         }
@@ -144,7 +143,7 @@ public final class TreesCommand extends AbstractCommand<TreesPlugin> {
             throw new CommandWarn("Too few placeable blocks: " + cuboid);
         }
         plugin.treeStructureList.add(treeStructure);
-        if (!plugin.saveTreeStructure(treeStructure)) {
+        if (!plugin.saveTreeStructure(treeStructure, structure)) {
             throw new CommandWarn("Saving failed. See console.");
         }
         player.sendMessage(text("Structure saved."
@@ -185,7 +184,7 @@ public final class TreesCommand extends AbstractCommand<TreesPlugin> {
                                cuboid.max.add(1, 1, 1).toBaseLocation(w), true);
                 String name = prefixArg + "_" + x + "_" + z;
                 TreeStructure treeStructure = new TreeStructure(type, name, structure);
-                TreeStructure.PreprocessResult pr = treeStructure.preprocess(w.getName(), cuboid.min);
+                TreeStructure.PreprocessResult pr = treeStructure.preprocess(structure, w.getName(), cuboid.min);
                 if (pr != TreeStructure.PreprocessResult.SUCCESS) {
                     throw new CommandWarn("Preprocessing failed: " + name + ", " + cuboid + ", " + pr);
                 }
@@ -193,7 +192,7 @@ public final class TreesCommand extends AbstractCommand<TreesPlugin> {
                     throw new CommandWarn("Too few placeable blocks: " + name + ", " + cuboid);
                 }
                 plugin.treeStructureList.add(treeStructure);
-                if (!plugin.saveTreeStructure(treeStructure)) {
+                if (!plugin.saveTreeStructure(treeStructure, structure)) {
                     throw new CommandWarn("Saving failed. See console.");
                 }
                 player.sendMessage(text("Saved: " + name + ", " + cuboid, YELLOW));
@@ -263,8 +262,8 @@ public final class TreesCommand extends AbstractCommand<TreesPlugin> {
         Vec3i sapling = selection.min.add(0, 1, 0);
         if (selection == null) throw new CommandWarn("No selection");
         player.sendMessage(text("Fake growing " + type + ", " + name + " at " + sapling, YELLOW));
-        Map<Vec3i, BlockData> blockDataMap = treeStructure.createBlockDataMap();
-        List<Vec3i> placeBlockList = treeStructure.createPlaceBlockList(blockDataMap);
+        Map<Vec3i, BlockData> blockDataMap = treeStructure.getBlockDataMap();
+        List<Vec3i> placeBlockList = treeStructure.getPlaceBlockList();
         World w = player.getWorld();
         BukkitRunnable task = new BukkitRunnable() {
                 int index = 0;
@@ -311,20 +310,17 @@ public final class TreesCommand extends AbstractCommand<TreesPlugin> {
         int maxWidth = 0;
         for (TreeStructure treeStructure : treeStructureList) {
             Block block = location.getWorld().getBlockAt(x, y, z);
-            treeStructure.structure.place(block.getLocation(), false,
-                                          StructureRotation.NONE, Mirror.NONE,
-                                          0, 1.0f,
-                                          ThreadLocalRandom.current());
-            x += treeStructure.structure.getSize().getX() + 1;
-            maxWidth = Math.max(maxWidth, (int) treeStructure.structure.getSize().getZ());
+            treeStructure.place(block);
+            x += treeStructure.getSize().getX() + 1;
+            maxWidth = Math.max(maxWidth, (int) treeStructure.getSize().getZ());
             while (!block.isEmpty() && block.getY() < 255) block = block.getRelative(0, 1, 0);
             block.setBlockData(Material.OAK_SIGN.createBlockData());
             if (block.getState() instanceof Sign sign) {
                 sign.line(0, text("" + type.name().toLowerCase()));
                 sign.line(1, text(treeStructure.getName()));
-                sign.line(2, text("" + ((int) treeStructure.structure.getSize().getX())
-                                  + "x" + ((int) treeStructure.structure.getSize().getY())
-                                  + "x" + ((int) treeStructure.structure.getSize().getZ())));
+                sign.line(2, text("" + ((int) treeStructure.getSize().getX())
+                                  + "x" + ((int) treeStructure.getSize().getY())
+                                  + "x" + ((int) treeStructure.getSize().getZ())));
                 sign.update();
             }
         }

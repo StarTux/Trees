@@ -14,7 +14,6 @@ import lombok.Getter;
 import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.Material;
-import org.bukkit.NamespacedKey;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -58,9 +57,6 @@ public final class TreesPlugin extends JavaPlugin implements Listener {
                 List<TreeStructure> loadList = new ArrayList<>();
                 loadTreeStructures(new File(getDataFolder(), "trees"), loadList);
                 loadTreeStructures(new File("/home/mc/public/config/Trees/trees"), loadList);
-                for (TreeStructure it : loadList) {
-                    it.load();
-                }
                 time = System.currentTimeMillis() - time;
                 double seconds = (double) time / 1000.0;
                 Bukkit.getScheduler().runTask(this, () -> {
@@ -93,21 +89,17 @@ public final class TreesPlugin extends JavaPlugin implements Listener {
         }
     }
 
-    protected boolean saveTreeStructure(TreeStructure treeStructure) {
+    protected boolean saveTreeStructure(TreeStructure treeStructure, Structure structure) {
         File folder = new File(new File(getDataFolder(), "trees"), treeStructure.getType().name().toLowerCase());
         folder.mkdirs();
         File file = new File(folder, treeStructure.getName() + STRUCTURE_SUFFIX);
         try {
-            Bukkit.getStructureManager().saveStructure(file, treeStructure.getStructure());
+            Bukkit.getStructureManager().saveStructure(file, structure);
         } catch (IOException ioe) {
             getLogger().log(Level.SEVERE, "writing " + file, ioe);
             return false;
         }
         return true;
-    }
-
-    protected static NamespacedKey namespacedKey(String name) {
-        return new NamespacedKey(instance, name);
     }
 
     public TreeStructure findTreeStructure(CustomTreeType type, String name) {
