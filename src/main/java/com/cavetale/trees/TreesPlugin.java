@@ -8,7 +8,9 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Level;
 import lombok.Getter;
 import org.bukkit.Bukkit;
@@ -24,12 +26,14 @@ import org.bukkit.event.world.StructureGrowEvent;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.structure.Structure;
+import static java.util.function.Function.identity;
 
 public final class TreesPlugin extends JavaPlugin implements Listener {
     @Getter protected static TreesPlugin instance;
     private static final String STRUCTURE_SUFFIX = ".dat";
     private final TreesCommand treesCommand = new TreesCommand(this);
     protected List<TreeStructure> treeStructureList = List.of();
+    private static final Map<Vec3i, Vec3i> VECTOR_CACHE = new HashMap<>();
 
     @Override
     public void onEnable() {
@@ -149,5 +153,9 @@ public final class TreesPlugin extends JavaPlugin implements Listener {
     @EventHandler(ignoreCancelled = true)
     private void onBlockBreak(BlockBreakEvent event) {
         if (SeedPlantTask.SAPLING_BLOCKS.contains(event.getBlock())) event.setCancelled(true);
+    }
+
+    public static Vec3i vector(int x, int y, int z) {
+        return VECTOR_CACHE.computeIfAbsent(new Vec3i(x, y, z), identity());
     }
 }

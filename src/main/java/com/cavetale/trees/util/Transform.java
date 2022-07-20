@@ -12,6 +12,7 @@ import org.bukkit.block.data.Orientable;
 import org.bukkit.block.data.type.Wall;
 import org.bukkit.block.structure.Mirror;
 import org.bukkit.block.structure.StructureRotation;
+import static com.cavetale.trees.TreesPlugin.vector;
 
 /**
  * Vector transformation utilities.
@@ -57,7 +58,7 @@ public final class Transform {
             break;
         case NONE: default: break;
         }
-        return new Vec3i(x, y, z);
+        return vector(x, y, z);
     }
 
     public static BlockFace rotate(BlockFace blockFace, StructureRotation rotation, Mirror mirror) {

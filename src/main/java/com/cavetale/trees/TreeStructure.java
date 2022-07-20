@@ -20,6 +20,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.structure.Structure;
 import org.bukkit.util.BlockVector;
+import static com.cavetale.trees.TreesPlugin.vector;
 import static org.bukkit.persistence.PersistentDataType.*;
 
 @Data
@@ -44,17 +45,17 @@ public final class TreeStructure {
         this.type = type;
         this.name = name;
         BlockVector blockVector = structure.getSize();
-        this.size = new Vec3i(blockVector.getBlockX(), blockVector.getBlockY(), blockVector.getBlockZ());
+        this.size = vector(blockVector.getBlockX(), blockVector.getBlockY(), blockVector.getBlockZ());
         PersistentDataContainer pdc = structure.getPersistentDataContainer();
         this.originWorld = pdc.getOrDefault(ORIGIN_WORLD, STRING, "");
         int[] intArray;
         intArray = pdc.getOrDefault(ORIGIN, INTEGER_ARRAY, EMPTY);
         this.origin = intArray.length == 3
-            ? new Vec3i(intArray[0], intArray[1], intArray[2])
+            ? vector(intArray[0], intArray[1], intArray[2])
             : Vec3i.ZERO;
         intArray = pdc.getOrDefault(SAPLING, INTEGER_ARRAY, EMPTY);
         this.sapling = intArray.length == 3
-            ? new Vec3i(intArray[0], intArray[1], intArray[2])
+            ? vector(intArray[0], intArray[1], intArray[2])
             : Vec3i.ZERO;
         this.blockDataMap = createBlockDataMap(structure);
         this.placeBlockList = createPlaceBlockList(blockDataMap, sapling);
@@ -100,7 +101,7 @@ public final class TreeStructure {
             for (var blockState : palette.getBlocks()) {
                 if (blockState.getY() == tallestGroundBlock + 1) {
                     if (!blockState.getType().isEmpty() && !Materials.GROUND.contains(blockState.getType())) {
-                        saplingBlockList.add(new Vec3i(blockState.getX(), blockState.getY(), blockState.getZ()));
+                        saplingBlockList.add(vector(blockState.getX(), blockState.getY(), blockState.getZ()));
                     }
                 }
             }
@@ -112,9 +113,9 @@ public final class TreeStructure {
             totalX += it.x;
             totalZ += it.z;
         }
-        this.sapling = new Vec3i(totalX / saplingBlockList.size(),
-                                 tallestGroundBlock + 1,
-                                 totalZ / saplingBlockList.size());
+        this.sapling = vector(totalX / saplingBlockList.size(),
+                              tallestGroundBlock + 1,
+                              totalZ / saplingBlockList.size());
         pdc.set(SAPLING, INTEGER_ARRAY, new int[] {
                 sapling.x,
                 sapling.y,
@@ -142,7 +143,7 @@ public final class TreeStructure {
         for (var blockState : structure.getPalettes().get(0).getBlocks()) {
             BlockData blockData = blockState.getBlockData();
             if (blockData == null || blockData.getMaterial().isAir()) continue;
-            Vec3i vec = new Vec3i(blockState.getX(), blockState.getY(), blockState.getZ());
+            Vec3i vec = vector(blockState.getX(), blockState.getY(), blockState.getZ());
             blockDataMap.put(vec, blockData);
         }
         return blockDataMap;
@@ -154,7 +155,7 @@ public final class TreeStructure {
             for (int z = -1; z <= 1; z += 1) {
                 for (int x = -1; x <= 1; x += 1) {
                     if (x == 0 && y == 0 && z == 0) continue;
-                    result.add(new Vec3i(x, y, z));
+                    result.add(vector(x, y, z));
                 }
             }
         }
