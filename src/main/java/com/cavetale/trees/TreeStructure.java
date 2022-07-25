@@ -1,6 +1,6 @@
 package com.cavetale.trees;
 
-import com.cavetale.area.struct.Vec3i;
+import com.cavetale.core.struct.Vec3i;
 import com.cavetale.mytems.item.tree.CustomTreeType;
 import java.util.ArrayList;
 import java.util.Collections;

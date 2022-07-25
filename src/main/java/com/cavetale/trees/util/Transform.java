@@ -1,6 +1,6 @@
 package com.cavetale.trees.util;
 
-import com.cavetale.area.struct.Vec3i;
+import com.cavetale.core.struct.Vec3i;
 import java.util.EnumSet;
 import java.util.Set;
 import org.bukkit.Axis;
@@ -65,7 +65,13 @@ public final class Transform {
         if (rotation == StructureRotation.NONE && mirror == Mirror.NONE) return blockFace;
         Vec3i vec = Vec3i.of(blockFace);
         vec = rotate(vec, rotation, mirror);
-        return vec.toSingleBlockFace();
+        if (vec.x > 0) return BlockFace.EAST;
+        if (vec.x < 0) return BlockFace.WEST;
+        if (vec.z > 0) return BlockFace.SOUTH;
+        if (vec.z < 0) return BlockFace.NORTH;
+        if (vec.y > 0) return BlockFace.UP;
+        if (vec.y < 0) return BlockFace.DOWN;
+        return blockFace;
     }
 
     /**

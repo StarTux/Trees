@@ -1,8 +1,8 @@
 package com.cavetale.trees;
 
-import com.cavetale.area.struct.Vec3i;
 import com.cavetale.core.event.block.PlayerBlockAbilityQuery;
 import com.cavetale.core.event.block.PlayerChangeBlockEvent;
+import com.cavetale.core.struct.Vec3i;
 import com.cavetale.mytems.item.tree.CustomTreeType;
 import com.cavetale.trees.util.Transform;
 import java.util.EnumSet;

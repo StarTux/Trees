@@ -1,12 +1,11 @@
 package com.cavetale.trees;
 
-import com.cavetale.area.struct.Cuboid;
-import com.cavetale.area.struct.Vec3i;
-import com.cavetale.area.worldedit.WorldEdit;
 import com.cavetale.core.command.AbstractCommand;
 import com.cavetale.core.command.CommandArgCompleter;
 import com.cavetale.core.command.CommandNode;
 import com.cavetale.core.command.CommandWarn;
+import com.cavetale.core.struct.Cuboid;
+import com.cavetale.core.struct.Vec3i;
 import com.cavetale.mytems.item.tree.CustomTreeType;
 import com.cavetale.trees.util.Transform;
 import java.util.List;
@@ -118,8 +117,7 @@ public final class TreesCommand extends AbstractCommand<TreesPlugin> {
         if (args.length != 2) return false;
         String typeArg = args[0];
         String nameArg = args[1];
-        Cuboid cuboid = WorldEdit.getSelection(player);
-        if (cuboid == null) throw new CommandWarn("No selection");
+        Cuboid cuboid = Cuboid.requireSelectionOf(player);
         Vec3i size = cuboid.getSize();
         if (size.x <= 1 || size.y <= 1 || size.z <= 1) {
             throw new CommandWarn("Invalid selection size: " + size);
@@ -132,10 +130,10 @@ public final class TreesCommand extends AbstractCommand<TreesPlugin> {
         }
         Structure structure = Bukkit.getStructureManager().createStructure();
         World w = player.getWorld();
-        structure.fill(cuboid.min.toLocation(w),
-                       cuboid.max.add(1, 1, 1).toBaseLocation(w), true);
+        structure.fill(cuboid.getMin().toLocation(w),
+                       cuboid.getMax().add(1, 1, 1).toLocation(w), true);
         TreeStructure treeStructure = new TreeStructure(type, nameArg, structure);
-        TreeStructure.PreprocessResult pr = treeStructure.preprocess(structure, w.getName(), cuboid.min);
+        TreeStructure.PreprocessResult pr = treeStructure.preprocess(structure, w.getName(), cuboid.getMin());
         if (pr != TreeStructure.PreprocessResult.SUCCESS) {
             throw new CommandWarn("Preprocessing failed: " + cuboid + ", " + pr);
         }
@@ -157,8 +155,7 @@ public final class TreesCommand extends AbstractCommand<TreesPlugin> {
         if (args.length != 5) return false;
         String typeArg = args[0];
         String prefixArg = args[1];
-        Cuboid selection = WorldEdit.getSelection(player);
-        if (selection == null) throw new CommandWarn("No selection");
+        Cuboid selection = Cuboid.requireSelectionOf(player);
         Vec3i size = selection.getSize();
         if (size.x <= 1 || size.y <= 1 || size.z <= 1) {
             throw new CommandWarn("Invalid selection size: " + size);
@@ -180,11 +177,11 @@ public final class TreesCommand extends AbstractCommand<TreesPlugin> {
                                                 0,
                                                 z * (gap + selectionSize.z));
                 Structure structure = Bukkit.getStructureManager().createStructure();
-                structure.fill(cuboid.min.toLocation(w),
-                               cuboid.max.add(1, 1, 1).toBaseLocation(w), true);
+                structure.fill(cuboid.getMin().toLocation(w),
+                               cuboid.getMax().add(1, 1, 1).toLocation(w), true);
                 String name = prefixArg + "_" + x + "_" + z;
                 TreeStructure treeStructure = new TreeStructure(type, name, structure);
-                TreeStructure.PreprocessResult pr = treeStructure.preprocess(structure, w.getName(), cuboid.min);
+                TreeStructure.PreprocessResult pr = treeStructure.preprocess(structure, w.getName(), cuboid.getMin());
                 if (pr != TreeStructure.PreprocessResult.SUCCESS) {
                     throw new CommandWarn("Preprocessing failed: " + name + ", " + cuboid + ", " + pr);
                 }
@@ -215,10 +212,9 @@ public final class TreesCommand extends AbstractCommand<TreesPlugin> {
         if (treeStructure == null) {
             throw new CommandWarn("Tree Structure not found: " + type + ", " + name);
         }
-        Cuboid selection = WorldEdit.getSelection(player);
-        if (selection == null) throw new CommandWarn("No selection");
-        treeStructure.show(player, selection.min);
-        player.sendMessage(text("Showing " + type + ", " + name + " at " + selection.min, YELLOW));
+        Cuboid selection = Cuboid.requireSelectionOf(player);
+        treeStructure.show(player, selection.getMin());
+        player.sendMessage(text("Showing " + type + ", " + name + " at " + selection.getMin(), YELLOW));
         return true;
     }
 
@@ -258,8 +254,8 @@ public final class TreesCommand extends AbstractCommand<TreesPlugin> {
         } else {
             mirror = Mirror.NONE;
         }
-        Cuboid selection = WorldEdit.getSelection(player);
-        Vec3i sapling = selection.min.add(0, 1, 0);
+        Cuboid selection = Cuboid.selectionOf(player);
+        Vec3i sapling = selection.getMin().add(0, 1, 0);
         if (selection == null) throw new CommandWarn("No selection");
         player.sendMessage(text("Fake growing " + type + ", " + name + " at " + sapling, YELLOW));
         Map<Vec3i, BlockData> blockDataMap = treeStructure.getBlockDataMap();
@@ -281,7 +277,7 @@ public final class TreesCommand extends AbstractCommand<TreesPlugin> {
                         Transform.rotate(blockData, rotation, mirror);
                         Vec3i vec2 = Transform.rotate(vec1.subtract(treeStructure.sapling), rotation, mirror);
                         try {
-                            player.sendBlockChange(vec2.add(selection.min).toLocation(w), blockData);
+                            player.sendBlockChange(vec2.add(selection.getMin()).toLocation(w), blockData);
                         } catch (Exception e) {
                             cancel();
                             plugin.getLogger().log(Level.SEVERE, "trees grow", e);
