@@ -70,7 +70,6 @@ public final class SeedPlantTask {
         REPLACEABLES.addAll(Tag.TALL_FLOWERS.getValues());
         REPLACEABLES.addAll(Tag.LOGS.getValues());
         REPLACEABLES.addAll(Tag.LEAVES.getValues());
-        REPLACEABLES.addAll(Tag.REPLACEABLE_PLANTS.getValues());
     }
 
     private void protectBlock(Block block) { }
