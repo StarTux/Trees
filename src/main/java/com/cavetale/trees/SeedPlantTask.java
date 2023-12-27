@@ -43,7 +43,7 @@ public final class SeedPlantTask {
             Material.FARMLAND,
             Material.DIRT_PATH,
             Material.SAND,
-            Material.GRASS,
+            Material.SHORT_GRASS,
             Material.TALL_GRASS,
             Material.PODZOL,
             Material.MOSS_CARPET,
@@ -149,7 +149,7 @@ public final class SeedPlantTask {
             }
             if (ticks % 12 == 0) {
                 Location location = sapling.toLocation(world).add(0.0, 0.5, 0.0);
-                world.spawnParticle(Particle.BLOCK_DUST, location, 8, 0.0, 0.0, 0.0, 0.0,
+                world.spawnParticle(Particle.BLOCK_CRACK, location, 8, 0.0, 0.0, 0.0, 0.0,
                                     type.saplingMaterial.createBlockData());
                 world.playSound(location, Sound.BLOCK_GRASS_BREAK, SoundCategory.BLOCKS, 0.5f, 1.75f);
             }

@@ -19,6 +19,7 @@ import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.Sign;
 import org.bukkit.block.data.BlockData;
+import org.bukkit.block.sign.Side;
 import org.bukkit.block.structure.Mirror;
 import org.bukkit.block.structure.StructureRotation;
 import org.bukkit.command.CommandSender;
@@ -312,11 +313,11 @@ public final class TreesCommand extends AbstractCommand<TreesPlugin> {
             while (!block.isEmpty() && block.getY() < 255) block = block.getRelative(0, 1, 0);
             block.setBlockData(Material.OAK_SIGN.createBlockData());
             if (block.getState() instanceof Sign sign) {
-                sign.line(0, text("" + type.name().toLowerCase()));
-                sign.line(1, text(treeStructure.getName()));
-                sign.line(2, text("" + ((int) treeStructure.getSize().getX())
-                                  + "x" + ((int) treeStructure.getSize().getY())
-                                  + "x" + ((int) treeStructure.getSize().getZ())));
+                sign.getSide(Side.FRONT).line(0, text("" + type.name().toLowerCase()));
+                sign.getSide(Side.FRONT).line(1, text(treeStructure.getName()));
+                sign.getSide(Side.FRONT).line(2, text("" + ((int) treeStructure.getSize().getX())
+                                                      + "x" + ((int) treeStructure.getSize().getY())
+                                                      + "x" + ((int) treeStructure.getSize().getZ())));
                 sign.update();
             }
         }
