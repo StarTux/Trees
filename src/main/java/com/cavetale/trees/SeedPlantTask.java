@@ -149,7 +149,7 @@ public final class SeedPlantTask {
             }
             if (ticks % 12 == 0) {
                 Location location = sapling.toLocation(world).add(0.0, 0.5, 0.0);
-                world.spawnParticle(Particle.BLOCK_CRACK, location, 8, 0.0, 0.0, 0.0, 0.0,
+                world.spawnParticle(Particle.BLOCK, location, 8, 0.0, 0.0, 0.0, 0.0,
                                     type.saplingMaterial.createBlockData());
                 world.playSound(location, Sound.BLOCK_GRASS_BREAK, SoundCategory.BLOCKS, 0.5f, 1.75f);
             }
