@@ -20,7 +20,6 @@ import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
-import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.world.StructureGrowEvent;
 import org.bukkit.inventory.EquipmentSlot;
@@ -148,11 +147,6 @@ public final class TreesPlugin extends JavaPlugin implements Listener {
     private void onStructureGrow(StructureGrowEvent event) {
         Block block = event.getLocation().getBlock();
         if (SeedPlantTask.SAPLING_BLOCKS.contains(block)) event.setCancelled(true);
-    }
-
-    @EventHandler(ignoreCancelled = true)
-    private void onBlockBreak(BlockBreakEvent event) {
-        if (SeedPlantTask.SAPLING_BLOCKS.contains(event.getBlock())) event.setCancelled(true);
     }
 
     public static Vec3i vector(int x, int y, int z) {
