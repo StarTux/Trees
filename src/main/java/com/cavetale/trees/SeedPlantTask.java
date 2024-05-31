@@ -5,6 +5,7 @@ import com.cavetale.core.event.block.PlayerChangeBlockEvent;
 import com.cavetale.core.struct.Vec3i;
 import com.cavetale.mytems.item.tree.CustomTreeType;
 import com.cavetale.trees.util.Transform;
+import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.List;
@@ -28,11 +29,16 @@ import org.bukkit.block.data.BlockData;
 import org.bukkit.block.data.type.Leaves;
 import org.bukkit.block.structure.Mirror;
 import org.bukkit.block.structure.StructureRotation;
+import org.bukkit.entity.BlockDisplay;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitTask;
+import org.bukkit.util.Transformation;
+import org.joml.AxisAngle4f;
+import org.joml.Vector3f;
 
 @RequiredArgsConstructor @Data
 public final class SeedPlantTask {
+    private static final float BLOCK_DISPLAY_SCALE = 1f / 16f;
     protected static final Set<Block> SAPLING_BLOCKS = new HashSet<>();
     public static final Set<Material> REPLACEABLES = EnumSet.of(Material.DIRT, new Material[] {
             Material.COARSE_DIRT,
@@ -62,6 +68,7 @@ public final class SeedPlantTask {
     private int totalTicks;
     private int blockIndex;
     private boolean valid;
+    private final List<BlockDisplay> blockDisplayList = new ArrayList<>();
 
     static {
         REPLACEABLES.addAll(Tag.DIRT.getValues());
@@ -108,14 +115,39 @@ public final class SeedPlantTask {
             if (!canReplaceBlock(toWorldVector(vec).toBlock(world))) return false;
         }
         saplingTicks = 200 + random.nextInt(200) - random.nextInt(50);
+        final Location location = sapling.toCenterFloorLocation(world).add(0, 1.0, 0);
+        for (Vec3i vec : treeStructure.getPlaceBlockList()) {
+            final BlockData blockData = treeStructure.getBlockDataMap().get(vec);
+            final Vec3i vector = vec.subtract(treeStructure.getSapling());
+            final Vector3f translation = new Vector3f((float) vector.x, (float) vector.y, (float) vector.z)
+                .sub(0.5f, 0.5f, 0.5f)
+                .mul(BLOCK_DISPLAY_SCALE);
+            final AxisAngle4f leftRotation = new AxisAngle4f(0f, 0f, 1f, 0f);
+            final Vector3f scale = new Vector3f(BLOCK_DISPLAY_SCALE, BLOCK_DISPLAY_SCALE, BLOCK_DISPLAY_SCALE);
+            final AxisAngle4f rightRotation = new AxisAngle4f(0f, 0f, 0f, 0f);
+            final BlockDisplay blockDisplay = world.spawn(location, BlockDisplay.class, e -> {
+                    e.setPersistent(false);
+                    e.setBlock(blockData);
+                    e.setTransformation(new Transformation(translation, leftRotation, scale, rightRotation));
+                });
+            blockDisplayList.add(blockDisplay);
+        }
         return true;
     }
 
     public void stop() {
         SAPLING_BLOCKS.remove(sapling.toBlock(world));
+        clearBlockDisplays();
         if (task != null) {
             task.cancel();
         }
+    }
+
+    private void clearBlockDisplays() {
+        for (BlockDisplay it : blockDisplayList) {
+            it.remove();
+        }
+        blockDisplayList.clear();
     }
 
     private void drop() {
@@ -154,8 +186,12 @@ public final class SeedPlantTask {
                                     type.saplingMaterial.createBlockData());
                 world.playSound(location, Sound.BLOCK_GRASS_BREAK, SoundCategory.BLOCKS, 0.5f, 1.75f);
             }
+            for (BlockDisplay blockDisplay : blockDisplayList) {
+                blockDisplay.setRotation((float) ticks * 4.0f, 0f);
+            }
             return;
         } else if (ticks == saplingTicks) {
+            clearBlockDisplays();
             if (!valid) {
                 stop();
                 sapling.toBlock(world).setType(Material.AIR);
