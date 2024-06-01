@@ -20,6 +20,7 @@ import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.world.StructureGrowEvent;
 import org.bukkit.inventory.EquipmentSlot;
@@ -143,10 +144,29 @@ public final class TreesPlugin extends JavaPlugin implements Listener {
         }
     }
 
+    /**
+     * Prevent a sapling from growing while we wait for it to sprout.
+     */
     @EventHandler(ignoreCancelled = true)
     private void onStructureGrow(StructureGrowEvent event) {
         Block block = event.getLocation().getBlock();
-        if (SeedPlantTask.SAPLING_BLOCKS.contains(block)) event.setCancelled(true);
+        if (SeedPlantTask.SEED_PLANT_TASK_MAP.containsKey(block)) {
+            event.setCancelled(true);
+        }
+    }
+
+    /**
+     * Have the seed item returned if the sapling is broken
+     * prematurely.
+     */
+    @EventHandler(ignoreCancelled = true)
+    private void onBlockBreak(BlockBreakEvent event) {
+        final SeedPlantTask task = SeedPlantTask.SEED_PLANT_TASK_MAP.get(event.getBlock());
+        if (task != null) {
+            if (task.onBreakSapling(event.getPlayer())) {
+                event.setDropItems(false);
+            }
+        }
     }
 
     public static Vec3i vector(int x, int y, int z) {

@@ -7,8 +7,9 @@ import com.cavetale.mytems.item.tree.CustomTreeType;
 import com.cavetale.trees.util.Transform;
 import java.util.ArrayList;
 import java.util.EnumSet;
-import java.util.HashSet;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
@@ -39,7 +40,7 @@ import org.joml.Vector3f;
 @RequiredArgsConstructor @Data
 public final class SeedPlantTask {
     private static final float BLOCK_DISPLAY_SCALE = 1f / 16f;
-    protected static final Set<Block> SAPLING_BLOCKS = new HashSet<>();
+    protected static final Map<Block, SeedPlantTask> SEED_PLANT_TASK_MAP = new HashMap<>();
     public static final Set<Material> REPLACEABLES = EnumSet.of(Material.DIRT, new Material[] {
             Material.COARSE_DIRT,
             Material.GRASS_BLOCK,
@@ -69,6 +70,19 @@ public final class SeedPlantTask {
     private int blockIndex;
     private boolean valid;
     private final List<BlockDisplay> blockDisplayList = new ArrayList<>();
+    private State state = State.INIT;
+
+    public enum State {
+        INIT,
+        INITIALIZED,
+        SPROUT_PREVIEW,
+        START_GROWING,
+        GROW,
+        DONE,
+        INVALID,
+        CANCELLED,
+        ;
+    }
 
     static {
         REPLACEABLES.addAll(Tag.DIRT.getValues());
@@ -78,10 +92,6 @@ public final class SeedPlantTask {
         REPLACEABLES.addAll(Tag.LOGS.getValues());
         REPLACEABLES.addAll(Tag.LEAVES.getValues());
     }
-
-    private void protectBlock(Block block) { }
-
-    private void releaseBlock(Block block) { }
 
     private boolean canReplaceBlock(Block block) {
         if (!block.isEmpty() && !REPLACEABLES.contains(block.getType())) {
@@ -99,7 +109,8 @@ public final class SeedPlantTask {
     public void start() {
         this.valid = initialize();
         task = Bukkit.getScheduler().runTaskTimer(plugin, this::tick, 0L, 1L);
-        SAPLING_BLOCKS.add(sapling.toBlock(world));
+        SEED_PLANT_TASK_MAP.put(sapling.toBlock(world), this);
+        state = State.INITIALIZED;
     }
 
     private boolean initialize() {
@@ -136,7 +147,7 @@ public final class SeedPlantTask {
     }
 
     public void stop() {
-        SAPLING_BLOCKS.remove(sapling.toBlock(world));
+        SEED_PLANT_TASK_MAP.remove(sapling.toBlock(world));
         clearBlockDisplays();
         if (task != null) {
             task.cancel();
@@ -152,7 +163,7 @@ public final class SeedPlantTask {
 
     private void drop() {
         if (!world.getGameRuleValue(GameRule.DO_TILE_DROPS)) return;
-        world.dropItem(sapling.toLocation(world).add(0.0, 0.5, 0.0), type.seedMytems.createItemStack());
+        world.dropItem(sapling.toCenterLocation(world), type.seedMytems.createItemStack());
     }
 
     private void tick() {
@@ -161,7 +172,12 @@ public final class SeedPlantTask {
             stop();
             return;
         }
-        if (ticks == 0) {
+        switch (state) {
+        case CANCELLED:
+            stop();
+            drop();
+            break;
+        case INITIALIZED: {
             Block saplingBlock = sapling.toBlock(world);
             Block floorBlock = saplingBlock.getRelative(0, -1, 0);
             if (!canReplaceBlock(saplingBlock) || !canReplaceBlock(floorBlock)) {
@@ -173,9 +189,10 @@ public final class SeedPlantTask {
             floorBlock.setType(Material.DIRT);
             new PlayerChangeBlockEvent(player, saplingBlock, type.saplingMaterial.createBlockData()).callEvent();
             saplingBlock.setType(type.saplingMaterial);
-            protectBlock(saplingBlock);
-            protectBlock(floorBlock);
-        } else if (ticks < saplingTicks) {
+            state = State.SPROUT_PREVIEW;
+            break;
+        }
+        case SPROUT_PREVIEW:
             if (sapling.toBlock(world).getType() != type.saplingMaterial) {
                 stop();
                 return;
@@ -189,23 +206,30 @@ public final class SeedPlantTask {
             for (BlockDisplay blockDisplay : blockDisplayList) {
                 blockDisplay.setRotation((float) ticks * 4.0f, 0f);
             }
-            return;
-        } else if (ticks == saplingTicks) {
+            if (ticks >= saplingTicks) {
+                state = State.START_GROWING;
+            }
+            break;
+        case START_GROWING:
             clearBlockDisplays();
+            sapling.toBlock(world).setType(Material.AIR);
             if (!valid) {
+                state = State.INVALID;
                 stop();
-                sapling.toBlock(world).setType(Material.AIR);
                 drop();
                 Location location = sapling.toLocation(world).add(0.5, 0.5, 0.5);
                 world.playSound(location, Sound.BLOCK_GRASS_BREAK, SoundCategory.BLOCKS, 1.0f, 0.5f);
-                return;
+            } else {
+                state = State.GROW;
+                plugin.getLogger().info("Growing " + type + " " + treeStructure.name
+                                        + " at " + world.getName() + " " + sapling
+                                        + " for " + player.getName());
             }
-            plugin.getLogger().info("Growing " + type + " " + treeStructure.name
-                                    + " at " + world.getName() + " " + sapling
-                                    + " for " + player.getName());
-        } else {
+            break;
+        case GROW:
             for (int i = 0; i < 8;) {
                 if (blockIndex >= treeStructure.getPlaceBlockList().size()) {
+                    state = State.DONE;
                     stop();
                     return;
                 }
@@ -227,6 +251,29 @@ public final class SeedPlantTask {
                 SoundGroup soundGroup = blockData.getSoundGroup();
                 world.playSound(block.getLocation().add(0.5, 0.5, 0.5), soundGroup.getPlaceSound(), SoundCategory.BLOCKS, 0.5f, 1.65f);
             }
+            break;
+        default: throw new IllegalStateException("state=" + state);
         }
+    }
+
+    /**
+     * Player breaks sapling.  This function checks if the sapling can
+     * currently be broken and updates the state of this task
+     * accordingly.  The calling event handler must stop the sapling
+     * from dropping.
+     *
+     * @return true if the sapling is now considered broken, false
+     * otherwise.
+     */
+    protected boolean onBreakSapling(Player thePlayer) {
+        if (state != State.SPROUT_PREVIEW) {
+            return false;
+        }
+        final Block saplingBlock = sapling.toBlock(world);
+        if (saplingBlock.getType() != type.getSaplingMaterial()) {
+            return false;
+        }
+        state = State.CANCELLED;
+        return true;
     }
 }
