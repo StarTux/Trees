@@ -114,6 +114,9 @@ public final class SeedPlantTask {
     }
 
     private boolean initialize() {
+        for (SeedPlantTask it : SEED_PLANT_TASK_MAP.values()) {
+            if (player.equals(it.player)) return false;
+        }
         List<TreeStructure> treeStructureList = plugin.findTreeStructures(type);
         if (treeStructureList.isEmpty()) return false;
         Random random = ThreadLocalRandom.current();
