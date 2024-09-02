@@ -50,6 +50,7 @@ public final class TreesPlugin extends JavaPlugin implements Listener {
     @Override
     public void onDisable() {
         for (CustomTreeType it : CustomTreeType.values()) {
+            it.setTreeModelCount(0);
             if (!(it.seedMytems.getMytem() instanceof TreeSeed treeSeed)) continue;
             treeSeed.setRightClickHandler(null);
         }
@@ -65,6 +66,13 @@ public final class TreesPlugin extends JavaPlugin implements Listener {
                 double seconds = (double) time / 1000.0;
                 Bukkit.getScheduler().runTask(this, () -> {
                         treeStructureList = loadList;
+                        for (CustomTreeType it : CustomTreeType.values()) {
+                            it.setTreeModelCount(0);
+                        }
+                        for (TreeStructure treeStructure : loadList) {
+                            final int count = treeStructure.getType().getTreeModelCount();
+                            treeStructure.getType().setTreeModelCount(count + 1);
+                        }
                         getLogger().info(treeStructureList.size() + " tree structures loaded in "
                                          + String.format("%.3f", seconds) + "s");
                     });
