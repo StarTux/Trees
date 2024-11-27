@@ -74,7 +74,7 @@ public final class TreesCommand extends AbstractCommand<TreesPlugin> {
             .playerCaller(this::grow);
         CommandNode dangerNode = rootNode.addChild("danger")
             .description("Dangerous commands! Do not touch unless in a void world!");
-        dangerNode.addChild("pasteall").arguments("<type>")
+        dangerNode.addChild("pasteall").arguments("<type> ITreeWhatImDoing")
             .description("Paste all trees")
             .completers(CommandArgCompleter.enumLowerList(CustomTreeType.class))
             .playerCaller(this::dangerPasteAll);
@@ -123,12 +123,7 @@ public final class TreesCommand extends AbstractCommand<TreesPlugin> {
         if (size.x <= 1 || size.y <= 1 || size.z <= 1) {
             throw new CommandWarn("Invalid selection size: " + size);
         }
-        CustomTreeType type;
-        try {
-            type = CustomTreeType.valueOf(args[0].toUpperCase());
-        } catch (IllegalArgumentException iae) {
-            throw new CommandWarn("Unknown tree type: " + typeArg);
-        }
+        final CustomTreeType type = CommandArgCompleter.requireEnum(CustomTreeType.class, typeArg);
         Structure structure = Bukkit.getStructureManager().createStructure();
         World w = player.getWorld();
         structure.fill(cuboid.getMin().toLocation(w),
@@ -292,7 +287,8 @@ public final class TreesCommand extends AbstractCommand<TreesPlugin> {
     }
 
     protected boolean dangerPasteAll(Player player, String[] args) {
-        if (args.length != 1) return false;
+        if (args.length != 2) return false;
+        if (!args[1].equals("ITreeWhatImDoing")) return false;
         final Location location = player.getLocation();
         final int y = location.getBlockY();
         final int z = location.getBlockZ();
