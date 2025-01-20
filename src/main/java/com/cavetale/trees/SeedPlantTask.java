@@ -88,7 +88,6 @@ public final class SeedPlantTask {
         REPLACEABLES.addAll(Tag.DIRT.getValues());
         REPLACEABLES.addAll(Tag.SAPLINGS.getValues());
         REPLACEABLES.addAll(Tag.FLOWERS.getValues());
-        REPLACEABLES.addAll(Tag.TALL_FLOWERS.getValues());
         REPLACEABLES.addAll(Tag.LOGS.getValues());
         REPLACEABLES.addAll(Tag.LEAVES.getValues());
     }
