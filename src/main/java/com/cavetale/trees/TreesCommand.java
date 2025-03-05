@@ -203,7 +203,7 @@ public final class TreesCommand extends AbstractCommand<TreesPlugin> {
         }
         final List<Block> blocks = new ArrayList<>();
         int blocksIndex = 0;
-        final int maxBlocksSize = 1024;
+        final int maxBlocksSize = 8192;
         blocks.add(lookAtBlock);
         int ax = lookAtBlock.getX();
         int ay = lookAtBlock.getY();
