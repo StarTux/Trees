@@ -164,6 +164,10 @@ public final class TreeStructure {
     private static List<Vec3i> createPlaceBlockList(Map<Vec3i, BlockData> blockDataMap, Vec3i start) {
         List<Vec3i> blockList = new ArrayList<>();
         Set<Vec3i> doneBlockSet = new HashSet<>();
+        // Mangrove trees are floaty!
+        for (int i = 0; i < 8 && !blockDataMap.containsKey(start); i += 1) {
+            start = start.add(0, 1, 0);
+        }
         blockList.add(start);
         doneBlockSet.add(start);
         int blockIndex = 0;
