@@ -13,7 +13,6 @@ public final class Materials {
     public static final Set<Material> GROUND = Set.of(Material.DIRT,
                                                       Material.COARSE_DIRT,
                                                       Material.GRASS_BLOCK,
-                                                      Material.MOSS_BLOCK,
                                                       Material.ROOTED_DIRT,
                                                       Material.STONE);
 

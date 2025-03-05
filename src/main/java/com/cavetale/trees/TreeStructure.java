@@ -99,10 +99,8 @@ public final class TreeStructure {
         List<Vec3i> saplingBlockList = new ArrayList<>();
         for (var palette : structure.getPalettes()) {
             for (var blockState : palette.getBlocks()) {
-                if (blockState.getY() == tallestGroundBlock + 1) {
-                    if (!blockState.getType().isEmpty() && !Materials.GROUND.contains(blockState.getType())) {
-                        saplingBlockList.add(vector(blockState.getX(), blockState.getY(), blockState.getZ()));
-                    }
+                if (blockState.getY() == tallestGroundBlock && Materials.GROUND.contains(blockState.getType())) {
+                    saplingBlockList.add(vector(blockState.getX(), blockState.getY() + 1, blockState.getZ()));
                 }
             }
         }

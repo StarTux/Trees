@@ -32,7 +32,7 @@ public final class TreesPlugin extends JavaPlugin implements Listener {
     @Getter protected static TreesPlugin instance;
     private static final String STRUCTURE_SUFFIX = ".dat";
     private final TreesCommand treesCommand = new TreesCommand(this);
-    protected List<TreeStructure> treeStructureList = List.of();
+    @Getter protected List<TreeStructure> treeStructureList = List.of();
     private static final Map<Vec3i, Vec3i> VECTOR_CACHE = new HashMap<>();
 
     @Override
@@ -54,6 +54,7 @@ public final class TreesPlugin extends JavaPlugin implements Listener {
             if (!(it.seedMytems.getMytem() instanceof TreeSeed treeSeed)) continue;
             treeSeed.setRightClickHandler(null);
         }
+        AutoTreeCache.clearAll();
     }
 
     protected void loadTreeStructures() {

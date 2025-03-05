@@ -6,13 +6,16 @@ import com.cavetale.core.command.CommandNode;
 import com.cavetale.core.command.CommandWarn;
 import com.cavetale.core.struct.Cuboid;
 import com.cavetale.core.struct.Vec3i;
+import com.cavetale.mytems.item.axis.CuboidOutline;
 import com.cavetale.mytems.item.tree.CustomTreeType;
 import com.cavetale.trees.util.Transform;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.function.IntPredicate;
 import java.util.logging.Level;
 import org.bukkit.Bukkit;
+import org.bukkit.Color;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
@@ -26,8 +29,13 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.structure.Structure;
+import static net.kyori.adventure.text.Component.space;
 import static net.kyori.adventure.text.Component.text;
+import static net.kyori.adventure.text.Component.textOfChildren;
+import static net.kyori.adventure.text.event.ClickEvent.runCommand;
+import static net.kyori.adventure.text.event.HoverEvent.showText;
 import static net.kyori.adventure.text.format.NamedTextColor.*;
+import static net.kyori.adventure.text.format.TextDecoration.*;
 
 public final class TreesCommand extends AbstractCommand<TreesPlugin> {
     protected TreesCommand(final TreesPlugin plugin) {
@@ -47,9 +55,16 @@ public final class TreesCommand extends AbstractCommand<TreesPlugin> {
             .senderCaller(this::test);
         rootNode.addChild("create").arguments("<type> <name>")
             .completers(CommandArgCompleter.enumLowerList(CustomTreeType.class),
-                        CommandArgCompleter.EMPTY)
+                        CommandArgCompleter.supplyStream(() -> plugin.treeStructureList.stream()
+                                                         .map(TreeStructure::getName)))
             .description("Create tree structure")
             .playerCaller(this::create);
+        rootNode.addChild("auto").arguments("<type> <name>")
+            .completers(CommandArgCompleter.enumLowerList(CustomTreeType.class),
+                        CommandArgCompleter.supplyStream(() -> plugin.treeStructureList.stream()
+                                                         .map(TreeStructure::getName)))
+            .description("Detect a tree and await confirmation")
+            .playerCaller(this::auto);
         rootNode.addChild("grid").arguments("<type> <prefix> <width-x> <height-z> <gap>")
             .description("Create trees from a grid")
             .completers(CommandArgCompleter.enumLowerList(CustomTreeType.class),
@@ -144,6 +159,156 @@ public final class TreesCommand extends AbstractCommand<TreesPlugin> {
                                 + " sapling=" + treeStructure.getSapling()
                                 + " entities=" + structure.getEntityCount(),
                                 YELLOW));
+        return true;
+    }
+
+    protected boolean auto(Player player, String[] args) {
+        if (args.length == 1 && args[0].equals("confirm")) {
+            final AutoTreeCache cache = AutoTreeCache.remove(player);
+            if (cache == null) {
+                throw new CommandWarn("Nothing to confirm");
+            }
+            if (!cache.isValid()) {
+                throw new CommandWarn("Tree not valid!");
+            }
+            final TreeStructure treeStructure = cache.getTreeStructure();
+            final Structure structure = cache.getStructure();
+            plugin.treeStructureList.add(treeStructure);
+            if (!plugin.saveTreeStructure(treeStructure, structure)) {
+                throw new CommandWarn("Saving failed. See console.");
+            }
+            player.sendMessage(text("Structure saved."
+                                    + " sapling=" + treeStructure.getSapling()
+                                    + " entities=" + structure.getEntityCount(),
+                                    YELLOW));
+            return true;
+        } else if (args.length == 1 && args[0].equals("cancel")) {
+            final AutoTreeCache cache = AutoTreeCache.remove(player);
+            if (cache == null) {
+                throw new CommandWarn("Nothing to cancel");
+            }
+            player.sendMessage(text("TreeStructure cancelled: " + cache.getTreeStructure().getType()
+                                    + ", " + cache.getTreeStructure().getName(), YELLOW));
+            return true;
+        }
+        if (args.length != 2) return false;
+        AutoTreeCache.remove(player);
+        // Parse arguments
+        final CustomTreeType type = CommandArgCompleter.requireEnum(CustomTreeType.class, args[0]);
+        final String nameArg = args[1];
+        // Find tree blocks with Flood Fill
+        final Block lookAtBlock = player.getTargetBlockExact(8);
+        if (lookAtBlock == null) {
+            throw new CommandWarn("Must look at tree block!");
+        }
+        final List<Block> blocks = new ArrayList<>();
+        int blocksIndex = 0;
+        final int maxBlocksSize = 1024;
+        blocks.add(lookAtBlock);
+        int ax = lookAtBlock.getX();
+        int ay = lookAtBlock.getY();
+        int az = lookAtBlock.getZ();
+        int bx = ax;
+        int by = ay;
+        int bz = az;
+        while (blocksIndex < blocks.size()) {
+            if (blocksIndex == maxBlocksSize) {
+                throw new CommandWarn("Tree size exceeds " + maxBlocksSize);
+            }
+            final Block block = blocks.get(blocksIndex++);
+            for (int dy = -1; dy <= 1; dy += 1) {
+                for (int dz = -1; dz <= 1; dz += 1) {
+                    for (int dx = -1; dx <= 1; dx += 1) {
+                        if (dx == 0 && dy == 0 && dz == 0) continue;
+                        final Block nbor = block.getRelative(dx, dy, dz);
+                        if (blocks.contains(nbor)) continue;
+                        if (nbor.isEmpty()) continue;
+                        blocks.add(nbor);
+                        final int x = nbor.getX();
+                        final int y = nbor.getY();
+                        final int z = nbor.getZ();
+                        if (x < ax) ax = x;
+                        if (y < ay) ay = y;
+                        if (z < az) az = z;
+                        if (x > bx) bx = x;
+                        if (y > by) by = y;
+                        if (z > bz) bz = z;
+                    }
+                }
+            }
+        }
+        final Cuboid cuboid = new Cuboid(ax, ay, az, bx, by, bz);
+        // Create structure
+        Structure structure = Bukkit.getStructureManager().createStructure();
+        World w = player.getWorld();
+        structure.fill(cuboid.getMin().toLocation(w),
+                       cuboid.getMax().add(1, 1, 1).toLocation(w), true);
+        TreeStructure treeStructure = new TreeStructure(type, nameArg, structure);
+        // Make AutoTreeCache
+        final AutoTreeCache autoTreeCache = AutoTreeCache.create(player, treeStructure, structure);
+        final CuboidOutline boundingBox = new CuboidOutline(player.getWorld(), cuboid);
+        boundingBox.showOnlyTo(player);
+        boundingBox.spawn();
+        boundingBox.glow(Color.WHITE);
+        autoTreeCache.setBoundingBox(boundingBox);
+        // Find Bad Blocks
+        for (Vec3i it : cuboid.enumerate()) {
+            Block block = it.toBlock(player.getWorld());
+            if (blocks.contains(block) || block.isEmpty()) continue;
+            final CuboidOutline badBlockOutline = new CuboidOutline(player.getWorld(), new Cuboid(it.x, it.y, it.z, it.x, it.y, it.z));
+            badBlockOutline.showOnlyTo(player);
+            badBlockOutline.spawn();
+            badBlockOutline.glow(Color.RED);
+            autoTreeCache.getBadBlocks().add(badBlockOutline);
+        }
+        // Preprocess
+        TreeStructure.PreprocessResult pr = treeStructure.preprocess(structure, w.getName(), cuboid.getMin());
+        if (pr != TreeStructure.PreprocessResult.SUCCESS) {
+            throw new CommandWarn("Preprocessing failed: " + cuboid + ", " + pr);
+        }
+        if (!treeStructure.testPlaceBlockList()) {
+            throw new CommandWarn("Too few placeable blocks: " + cuboid);
+        }
+        // Sapling highlight
+        final Vec3i sapling = treeStructure.getSapling().add(treeStructure.getOrigin());
+        final CuboidOutline saplingOutline = new CuboidOutline(player.getWorld(), new Cuboid(sapling.x, sapling.y, sapling.z, sapling.x, sapling.y, sapling.z));
+        saplingOutline.showOnlyTo(player);
+        saplingOutline.spawn();
+        saplingOutline.glow(Color.GREEN);
+        autoTreeCache.setSapling(saplingOutline);
+        // Check Duplicates
+        for (TreeStructure other : plugin.getTreeStructureList()) {
+            if (treeStructure.getOriginWorld().equals(other.getOriginWorld()) && treeStructure.getOrigin().equals(other.getOrigin())) {
+                throw new CommandWarn("Duplicate of " + other.getType() + ", " + other.getName());
+            }
+            if (treeStructure.getName().equals(other.getName())) {
+                throw new CommandWarn("Duplicate name: " + other.getType() + ", " + other.getName());
+            }
+        }
+        autoTreeCache.setValid(true);
+        // Feedback
+        player.sendMessage(textOfChildren(text("Tree found!", GREEN),
+                                          space(),
+                                          text(nameArg, BLUE),
+                                          space(),
+                                          text(type.name(), AQUA, ITALIC),
+                                          space(),
+                                          text("origin:", GRAY), text("" + treeStructure.getOrigin(), WHITE),
+                                          space(),
+                                          text("blocks:", GRAY), text(blocks.size(), WHITE),
+                                          space(),
+                                          text("sapling:", GRAY), text("" + sapling, WHITE),
+                                          space(),
+                                          text("entities:", GRAY), text(structure.getEntityCount(), WHITE),
+                                          space(),
+                                          text("bad:", GRAY), text(autoTreeCache.getBadBlocks().size(), RED)));
+        player.sendMessage(textOfChildren(text("[Confirm]", GREEN)
+                                          .clickEvent(runCommand("/trees auto confirm"))
+                                          .hoverEvent(showText(text("/trees auto confirm", GREEN))),
+                                          text("  "),
+                                          text("[Cancel]", RED)
+                                          .clickEvent(runCommand("/trees auto cancel"))
+                                          .hoverEvent(showText(text("/trees auto cancel", RED)))));
         return true;
     }
 
