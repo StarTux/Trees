@@ -5,7 +5,7 @@ description: Custom Tree Seeds
 author: StarTux
 
 version: 0.1
-api-version: '1.21'
+api-version: '1.21.8'
 
 depend: [Core, Mytems]
 softdepend: []
